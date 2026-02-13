@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { createUser, loginUser } = require('../controller/userController');
+const { createUser, loginUser, toggleUserStatus } = require('../controller/userController');
 const verifyToken = require('../middleware/authMiddleware');
 const userDB = require('../db/userDB');
 
@@ -48,5 +48,7 @@ router.get("/roles", verifyToken, (req, res) => {
     res.json(results);
   });
 });
+
+router.put("/users/:id/status", verifyToken, toggleUserStatus);
 
 module.exports = router;

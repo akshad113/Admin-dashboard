@@ -6,9 +6,11 @@ import { apiRequest } from "../lib/api";
 function Users() {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false); // <-- modal state
+  const [isModalOpen, setIsModalOpen] = useState(false); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 8;
 
   const getStatusClasses = (status) => {
     const value = String(status || "").toLowerCase();
@@ -43,10 +45,29 @@ function Users() {
     }
   }, [navigate]);
 
+  const handleToggleStatus = async (userId) => {
+    try {
+      await apiRequest(`/users/${userId}/status`, { method: "PUT" });
+      await loadUsers();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to update status");
+    }
+  };
+
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [users.length]);
+
+  const totalPages = Math.max(1, Math.ceil(users.length / pageSize));
+  const startIndex = (page - 1) * pageSize;
+  const visibleUsers = users.slice(startIndex, startIndex + pageSize);
+  const showingFrom = users.length === 0 ? 0 : startIndex + 1;
+  const showingTo = Math.min(startIndex + pageSize, users.length);
 
   return (
     <div className="bg-white rounded-xl shadow p-6">
@@ -95,7 +116,7 @@ function Users() {
               </td>
             </tr>
           ) : (
-            users.map((u) => (
+            visibleUsers.map((u) => (
               <tr key={u.user_id} className="hover:bg-slate-50/80 transition-colors">
                 <td className="py-4 px-4 font-medium text-slate-900">{u.name}</td>
                 <td className="px-4 text-slate-700">{u.email}</td>
@@ -111,8 +132,13 @@ function Users() {
                   <button className="text-blue-600 hover:text-blue-700 hover:underline mr-3">
                     Edit
                   </button>
-                  <button className="text-red-600 hover:text-red-700 hover:underline">
-                    Delete
+                  <button
+                    className="text-slate-700 hover:text-slate-900 hover:underline"
+                    onClick={() => handleToggleStatus(u.user_id)}
+                  >
+                    {(String(u.status || "").toLowerCase() === "active")
+                      ? "Deactivate"
+                      : "Activate"}
                   </button>
                 </td>
               </tr>
@@ -120,6 +146,33 @@ function Users() {
           )}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+        <span>
+          Showing {showingFrom}-{showingTo} of {users.length}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Prev
+          </button>
+          <span className="min-w-[80px] text-center">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   );

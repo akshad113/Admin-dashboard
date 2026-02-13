@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 
 const userRouter = require('./routes/Users');
-const userDB = require('./db/userDB'); // make sure DB connects inside this file
+const userDB = require('./db/userDB'); 
 
 const app = express();
 
