@@ -1,0 +1,76 @@
+/* container */
+.container{
+  display: flex;
+}
+
+
+
+/* Dash board */
+.dash-container{
+  display: flex;
+  width: 75vw;
+  justify-content: space-between;
+}
+.dash-container input{
+  height: 1rem;
+
+}
+
+
+.menu{
+  width: 15rem;
+  /* background-color: aqua; */
+  height: 42rem;
+  align-items: center;
+}
+.function{
+  text-align: center;
+  /* background-color: blue; */
+  width: 10rem;
+}
+
+.menu {
+  width: 250px;
+  height: 100vh;
+  background-color: #0f172a;
+  color: white;
+  padding: 20px;
+}
+
+/* Logo + Name */
+.logoSection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+
+.companyName {
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: aqua;
+}
+
+/* Menu Items */
+.functions h3 {
+  font-size: 16px;
+  font-weight: 500;
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.3s;
+}
+.function a{
+   text-decoration: none;
+   color: whitesmoke;
+}
+
+.function a:hover{
+  color: blue;
+}
+
+.logout {
+  color: #f87171;
+}
