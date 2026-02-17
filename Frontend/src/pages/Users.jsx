@@ -2,8 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Model from "../components/Model";
 import { apiRequest } from "../lib/api";
+import EditUserModal from "../components/EditUserModal";
 
 function Users() {
+  const [editingUser, setEditingUser] = useState(null);
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false); 
@@ -78,11 +80,19 @@ function Users() {
           onUserCreated={loadUsers}
         />
       )}
+      {editingUser && (
+        <EditUserModal
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onSaved={loadUsers}
+        />
+      )}
+
 
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Users</h2>
         <button
-          onClick={() => setIsModalOpen(true)} // <-- open modal on click
+          onClick={() => setIsModalOpen(true)} //model opening
           className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
         >
           + Add User
@@ -129,7 +139,7 @@ function Users() {
                   </span>
                 </td>
                 <td className="px-4 text-center">
-                  <button className="text-blue-600 hover:text-blue-700 hover:underline mr-3">
+                  <button className="text-blue-600 hover:text-blue-700 hover:underline mr-3" onClick={() => setEditingUser(u)}>
                     Edit
                   </button>
                   <button
@@ -177,5 +187,5 @@ function Users() {
     </div>
   );
 }
-
+ 
 export default Users;

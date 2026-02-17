@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 
-const { createUser, loginUser, toggleUserStatus } = require('../controller/userController');
+const { createUser, loginUser, updateUser, toggleUserStatus } = require('../controller/userController');
 const verifyToken = require('../middleware/authMiddleware');
 const userDB = require('../db/userDB');
+
 
 /////////////////////////////////////////////////
 // PUBLIC ROUTES
@@ -15,6 +16,7 @@ router.post('/createuser', createUser);
 // Login
 router.post('/login', loginUser);
 
+
 /////////////////////////////////////////////////
 // PROTECTED ROUTES (Require JWT)
 /////////////////////////////////////////////////
@@ -22,7 +24,7 @@ router.post('/login', loginUser);
 router.get("/users", verifyToken, (req, res) => {
 
   const sql = `
-    SELECT u.user_id, u.name, u.email, u.status, r.role_name
+    SELECT u.user_id, u.name, u.email, u.status, ra.role_id, r.role_name
     FROM users u
     LEFT JOIN role_assign ra ON ra.user_id = u.user_id
     LEFT JOIN roles r ON r.role_id = ra.role_id
@@ -50,5 +52,6 @@ router.get("/roles", verifyToken, (req, res) => {
 });
 
 router.put("/users/:id/status", verifyToken, toggleUserStatus);
+router.put("/users/:id", verifyToken, updateUser);
 
 module.exports = router;

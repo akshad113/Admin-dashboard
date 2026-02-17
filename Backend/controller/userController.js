@@ -3,7 +3,6 @@ const util = require('util');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
-const { error } = require('console');
 
 const query = util.promisify(connection.query).bind(connection);
 const beginTransaction = util.promisify(connection.beginTransaction).bind(connection);
@@ -144,6 +143,100 @@ const loginUser = async (req, res) => {
   }
 };
 
+const updateUser = async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    const { name, email, role_id, status } = req.body;
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ error: "Invalid user id" });
+    }
+
+    if (!name || String(name).trim().length < 2) {
+      return res.status(400).json({ error: "Name must be at least 2 characters" });
+    }
+
+    const emailValue = String(email || "").trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailValue)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+
+    const allowedStatuses = ["active", "inactive"];
+    const statusValue = String(status || "").trim().toLowerCase();
+    if (!allowedStatuses.includes(statusValue)) {
+      return res.status(400).json({ error: "Status must be active or inactive" });
+    }
+
+    let parsedRoleId = null;
+    if (role_id !== undefined && role_id !== null && role_id !== "") {
+      parsedRoleId = Number(role_id);
+      if (!Number.isInteger(parsedRoleId) || parsedRoleId <= 0) {
+        return res.status(400).json({ error: "Invalid role id" });
+      }
+    }
+
+    const existingUser = await query("SELECT user_id FROM users WHERE user_id = ?", [userId]);
+    if (existingUser.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const duplicate = await query(
+      "SELECT user_id FROM users WHERE email = ? AND user_id <> ?",
+      [emailValue, userId]
+    );
+    if (duplicate.length > 0) {
+      return res.status(409).json({ error: "Email already in use" });
+    }
+
+    if (parsedRoleId !== null) {
+      const roleExists = await query("SELECT role_id FROM roles WHERE role_id = ?", [parsedRoleId]);
+      if (roleExists.length === 0) {
+        return res.status(400).json({ error: "Role does not exist" });
+      }
+    }
+
+    await beginTransaction();
+
+    await query("UPDATE users SET name = ?, email = ?, status = ? WHERE user_id = ?", [
+      String(name).trim(),
+      emailValue,
+      statusValue,
+      userId,
+    ]);
+
+    // Keep role_assign as the single source of user-role mapping.
+    await query("DELETE FROM role_assign WHERE user_id = ?", [userId]);
+    if (parsedRoleId !== null) {
+      await query("INSERT INTO role_assign SET ?", {
+        user_id: userId,
+        role_id: parsedRoleId,
+      });
+    }
+
+    await commit();
+
+    return res.status(200).json({
+      message: "User updated successfully",
+      userId,
+    });
+  } catch (error) {
+    try {
+      await rollback();
+    } catch (rollbackError) {
+      console.error("Rollback failed:", rollbackError.message);
+    }
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+
+
+
+
+
+
+
 //////////////////////////////////////////////////
 // TOGGLE USER STATUS
 //////////////////////////////////////////////////
@@ -177,5 +270,6 @@ const toggleUserStatus = async (req, res) => {
 module.exports = {
   createUser,
   loginUser,
+  updateUser,
   toggleUserStatus,
 };

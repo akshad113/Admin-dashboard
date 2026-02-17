@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 
 const userRouter = require('./routes/Users');
+const categoryRouter = require('./routes/Categories');
 const userDB = require('./db/userDB'); 
 
 const app = express();
@@ -20,7 +21,6 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow non-browser tools and configured local frontends.
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
@@ -38,6 +38,7 @@ app.use(express.urlencoded({ extended: true }));
 /////////////////////////////////////////////////
 
 app.use('/api', userRouter);
+app.use('/api/categories', categoryRouter);
 
 /////////////////////////////////////////////////
 // TEST ROUTE
