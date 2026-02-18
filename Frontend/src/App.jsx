@@ -1,12 +1,13 @@
 import Users from "./pages/Users";
 import Categories from "./pages/Categories";
+import Subcategories from "./pages/Subcategories";
 import Products from "./pages/Products";
 import Other from "./pages/Other";
 import Orders from "./pages/Orders";
 import Payments from "./pages/Payments";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
-import Sidebar from "./components/Sidebar1";
+import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import LogIn from "./components/logIn";
 import ProtectedRoute from "./components/Protected";
@@ -35,6 +36,7 @@ function App() {
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/categories" element={<Categories />} />
+                    <Route path="/subcategories" element={<Subcategories />} />
                     <Route path="/orders" element={<Orders />} />
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/settings" element={<Settings />} />

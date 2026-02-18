@@ -1,20 +1,35 @@
 # Admin Dashboard
 
-Full‑stack admin dashboard with a React (Vite) frontend and a Node/Express backend backed by MySQL.
+Full-stack admin dashboard with a React (Vite) frontend and a Node/Express backend backed by MySQL.
 
-**Tech Stack**
+## Tech Stack
 1. Frontend: React, Vite, Tailwind CSS, ApexCharts/Recharts
 2. Backend: Node.js, Express, MySQL, JWT auth
 
-**Project Structure**
+## Project Structure
 1. `Frontend/` - React app (Vite)
 2. `Backend/` - Express API
 
-**Prerequisites**
+## Features
+1. Protected admin layout with sidebar and top bar
+2. Category management with full CRUD (create, list, update, delete)
+3. Subcategory management UI linked to categories
+
+## API Endpoints
+Category routes are mounted at `/api/categories`:
+
+1. `GET /api/categories/` - list categories
+2. `POST /api/categories/create` - create category
+3. `PUT /api/categories/:id` - update category
+4. `DELETE /api/categories/:id` - delete category
+
+Note: Subcategories are currently managed on the frontend and stored in browser `localStorage`.
+
+## Prerequisites
 1. Node.js + npm
 2. MySQL running locally
 
-**Backend Setup**
+## Backend Setup
 1. Install dependencies:
 
 ```bash
@@ -38,9 +53,9 @@ PORT=5000
 npm run start
 ```
 
-The API will run on `http://localhost:5000` by default.
+API runs on `http://localhost:5000`.
 
-**Frontend Setup**
+## Frontend Setup
 1. Install dependencies:
 
 ```bash
@@ -48,14 +63,14 @@ cd Frontend
 npm install
 ```
 
-2. Start the dev server:
+2. Start dev server:
 
 ```bash
 npm run dev
 ```
 
-The frontend will run on the Vite default port (usually `http://localhost:5173`).
+Frontend runs on Vite default port (usually `http://localhost:5173`).
 
-**Notes**
-1. CORS is configured to allow `http://localhost:3000` and `http://localhost:5173` in `Backend/server.js`.
-2. API routes are mounted under `/api`.
+## Notes
+1. CORS allows `http://localhost:3000` and `http://localhost:5173` in `Backend/server.js`.
+2. App routes are protected under `ProtectedRoute` except `/login`.

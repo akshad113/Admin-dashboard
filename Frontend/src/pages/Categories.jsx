@@ -4,28 +4,24 @@ import axios from "axios";
 function Categories() {
   const [newCat, setNewCat] = useState("");
   const [categories, setCategories] = useState([]);
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
+  const [editingName, setEditingName] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [responseMsg, setResponseMsg] = useState("");
 
-  // fetch categories
+  const getApiError = (err, fallback) =>
+    err.response?.data?.error || err.response?.data?.message || err.message || fallback;
+
   const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-
-      const res = await axios.get(
-        "http://localhost:5000/api/categories/"
-      );
-
+      const res = await axios.get("http://localhost:5000/api/categories/");
       setCategories(res.data);
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          err.message ||
-          "Failed to fetch categories"
-      );
+      setError(getApiError(err, "Failed to fetch categories"));
     } finally {
       setLoading(false);
     }
@@ -35,14 +31,18 @@ function Categories() {
     fetchCategories();
   }, [fetchCategories]);
 
-  // Add category
+  useEffect(() => {
+    if (!responseMsg) return undefined;
+    const timer = setTimeout(() => setResponseMsg(""), 3000);
+    return () => clearTimeout(timer);
+  }, [responseMsg]);
+
   const handleAdd = async (e) => {
     e.preventDefault();
-
     const trimmedName = newCat.trim();
 
     if (!trimmedName) {
-      setResponseMsg("Name of the category is required");
+      setResponseMsg("Request error: Name of the category is required");
       return;
     }
 
@@ -50,7 +50,7 @@ function Categories() {
       setSubmitting(true);
       setResponseMsg("");
 
-      const res = await axios.post(
+      await axios.post(
         "http://localhost:5000/api/categories/create",
         { name: trimmedName },
         {
@@ -61,19 +61,69 @@ function Categories() {
         }
       );
 
-      setResponseMsg(`Success! Created "${res.data.name || trimmedName}"`);
+      setResponseMsg(`Success! Created "${trimmedName}"`);
       setNewCat("");
-      fetchCategories();
-
-      // clear message after 3 seconds
-      setTimeout(() => setResponseMsg(""), 3000);
+      await fetchCategories();
     } catch (err) {
-      const message =
-        err.response?.data?.message ||
-        err.message ||
-        "Request failed";
+      setResponseMsg(`Request error: ${getApiError(err, "Request failed")}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-      setResponseMsg(`Request error: ${message}`);
+  const startEdit = (category) => {
+    setEditingCategoryId(category.category_id);
+    setEditingName(category.name);
+  };
+
+  const cancelEdit = () => {
+    setEditingCategoryId(null);
+    setEditingName("");
+  };
+
+  const handleSaveEdit = async (categoryId) => {
+    const trimmedName = editingName.trim();
+    if (!trimmedName) {
+      setResponseMsg("Request error: Category name is required");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setResponseMsg("");
+
+      await axios.put(
+        `http://localhost:5000/api/categories/${categoryId}`,
+        { name: trimmedName },
+        { headers: { "Content-Type": "application/json" }, timeout: 5000 }
+      );
+
+      setResponseMsg("Success! Category updated");
+      cancelEdit();
+      await fetchCategories();
+    } catch (err) {
+      setResponseMsg(`Request error: ${getApiError(err, "Failed to update category")}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (categoryId) => {
+    try {
+      setSubmitting(true);
+      setResponseMsg("");
+
+      await axios.delete(`http://localhost:5000/api/categories/${categoryId}`, {
+        timeout: 5000,
+      });
+
+      setResponseMsg("Success! Category deleted");
+      if (editingCategoryId === categoryId) {
+        cancelEdit();
+      }
+      await fetchCategories();
+    } catch (err) {
+      setResponseMsg(`Request error: ${getApiError(err, "Failed to delete category")}`);
     } finally {
       setSubmitting(false);
     }
@@ -89,60 +139,141 @@ function Categories() {
     );
 
   return (
-    <div className="bg-white rounded-xl shadow p-6">
-      <h2 className="text-lg font-semibold mb-4">Categories</h2>
+  <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl p-8 border border-gray-100">
 
-      <form onSubmit={handleAdd} className="flex gap-2 mb-4">
-        <input
-          type="text"
-          value={newCat}
-          onChange={(e) => setNewCat(e.target.value)}
-          placeholder="Enter category name"
-          className="border rounded px-3 py-2 flex-1"
-        />
+    {/* HEADER */}
+    <h2 className="text-2xl font-bold mb-6 text-gray-800 tracking-tight">
+        Categories Manager
+    </h2>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
-        >
-          {submitting ? "Adding..." : "Add"}
-        </button>
-      </form>
+    {/* ADD FORM */}
+    <form onSubmit={handleAdd} className="flex gap-3 mb-8">
 
-      <ul className="space-y-3">
-        {categories.length === 0 ? (
-          <p className="text-gray-500 text-sm">
-            No categories available
-          </p>
-        ) : (
-          categories.map((cat) => (
-            <li
-              key={cat.category_id}
-              className="flex justify-between items-center p-3 rounded-lg border hover:bg-gray-50"
-            >
-              <span>{cat.name}</span>
-              <button className="text-blue-600 text-sm hover:underline">
-                Edit
-              </button>
-            </li>
-          ))
-        )}
-      </ul>
+      <input
+        type="text"
+        value={newCat}
+        onChange={(e) => setNewCat(e.target.value)}
+        placeholder="Add new category..."
+        className="
+          flex-1 px-4 py-3 rounded-xl border border-gray-200
+          focus:outline-none focus:ring-2 focus:ring-blue-500
+          transition shadow-sm
+        "
+      />
 
-      {responseMsg && (
-        <p
-          className={`mt-4 text-sm ${
+      <button
+        type="submit"
+        disabled={submitting}
+        className="
+          px-6 py-3 rounded-xl font-semibold text-white
+          bg-gradient-to-r from-blue-600 to-indigo-600
+          hover:scale-105 active:scale-95
+          transition transform shadow-md
+          disabled:opacity-50
+        "
+      >
+        {submitting ? "Adding..." : "Add"}
+      </button>
+
+    </form>
+
+    {/* CATEGORY LIST */}
+    {categories.length === 0 ? (
+
+      <div className="text-center py-12 text-gray-400">
+        <p className="text-lg">No categories yet</p>
+        <p className="text-sm">Create your first category above</p>
+      </div>
+
+    ) : (
+
+      <div className="grid md:grid-cols-2 gap-4">
+
+        {categories.map((cat) => (
+
+          <div
+            key={cat.category_id}
+            className="
+              group flex flex-col gap-3
+              px-5 py-4 rounded-xl
+              bg-white border border-gray-100
+              shadow-sm hover:shadow-lg
+              hover:-translate-y-1
+              transition-all
+            "
+          >
+            {editingCategoryId === cat.category_id ? (
+              <>
+                <input
+                  type="text"
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleSaveEdit(cat.category_id)}
+                    disabled={submitting}
+                    className="text-sm px-3 py-1 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={cancelEdit}
+                    disabled={submitting}
+                    className="text-sm px-3 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="w-full flex items-center justify-between gap-2">
+                <span className="font-medium text-gray-700">{cat.name}</span>
+                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
+                  <button
+                    onClick={() => startEdit(cat)}
+                    disabled={submitting}
+                    className="text-sm px-3 py-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition disabled:opacity-50"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(cat.category_id)}
+                    disabled={submitting}
+                    className="text-sm px-3 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            )}
+
+          </div>
+
+        ))}
+
+      </div>
+    )}
+
+    {/* MESSAGE */}
+    {responseMsg && (
+      <div
+        className={`
+          mt-6 px-4 py-3 rounded-lg text-sm font-medium
+          ${
             responseMsg.startsWith("Request")
-              ? "text-red-600"
-              : "text-green-600"
-          }`}
-        >
-          {responseMsg}
-        </p>
-      )}
-    </div>
-  );
+              ? "bg-red-50 text-red-600"
+              : "bg-green-50 text-green-600"
+          }
+        `}
+      >
+        {responseMsg}
+      </div>
+    )}
+  </div>
+);
+
 }
 
 export default Categories;
