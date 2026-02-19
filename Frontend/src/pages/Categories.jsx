@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import { apiRequest } from "../lib/api";
 
 function Categories() {
   const [newCat, setNewCat] = useState("");
@@ -11,17 +11,14 @@ function Categories() {
   const [error, setError] = useState("");
   const [responseMsg, setResponseMsg] = useState("");
 
-  const getApiError = (err, fallback) =>
-    err.response?.data?.error || err.response?.data?.message || err.message || fallback;
-
   const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      const res = await axios.get("http://localhost:5000/api/categories/");
-      setCategories(res.data);
+      const data = await apiRequest("/categories/");
+      setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(getApiError(err, "Failed to fetch categories"));
+      setError(err.message || "Failed to fetch categories");
     } finally {
       setLoading(false);
     }
@@ -50,22 +47,17 @@ function Categories() {
       setSubmitting(true);
       setResponseMsg("");
 
-      await axios.post(
-        "http://localhost:5000/api/categories/create",
-        { name: trimmedName },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          timeout: 5000,
-        }
-      );
+      await apiRequest("/categories/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmedName }),
+      });
 
       setResponseMsg(`Success! Created "${trimmedName}"`);
       setNewCat("");
       await fetchCategories();
     } catch (err) {
-      setResponseMsg(`Request error: ${getApiError(err, "Request failed")}`);
+      setResponseMsg(`Request error: ${err.message || "Request failed"}`);
     } finally {
       setSubmitting(false);
     }
@@ -92,17 +84,17 @@ function Categories() {
       setSubmitting(true);
       setResponseMsg("");
 
-      await axios.put(
-        `http://localhost:5000/api/categories/${categoryId}`,
-        { name: trimmedName },
-        { headers: { "Content-Type": "application/json" }, timeout: 5000 }
-      );
+      await apiRequest(`/categories/${categoryId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmedName }),
+      });
 
       setResponseMsg("Success! Category updated");
       cancelEdit();
       await fetchCategories();
     } catch (err) {
-      setResponseMsg(`Request error: ${getApiError(err, "Failed to update category")}`);
+      setResponseMsg(`Request error: ${err.message || "Failed to update category"}`);
     } finally {
       setSubmitting(false);
     }
@@ -113,8 +105,8 @@ function Categories() {
       setSubmitting(true);
       setResponseMsg("");
 
-      await axios.delete(`http://localhost:5000/api/categories/${categoryId}`, {
-        timeout: 5000,
+      await apiRequest(`/categories/${categoryId}`, {
+        method: "DELETE",
       });
 
       setResponseMsg("Success! Category deleted");
@@ -123,7 +115,7 @@ function Categories() {
       }
       await fetchCategories();
     } catch (err) {
-      setResponseMsg(`Request error: ${getApiError(err, "Failed to delete category")}`);
+      setResponseMsg(`Request error: ${err.message || "Failed to delete category"}`);
     } finally {
       setSubmitting(false);
     }

@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
-
-const STORAGE_KEY = "admin_dashboard_subcategories_v1";
+import { apiRequest } from "../lib/api";
 
 function Subcategories() {
   const [categories, setCategories] = useState([]);
@@ -12,39 +10,36 @@ function Subcategories() {
   const [editingName, setEditingName] = useState("");
   const [editingCategoryId, setEditingCategoryId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [subLoading, setSubLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return;
+  const fetchSubcategories = async () => {
     try {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) {
-        setSubcategories(parsed);
-      }
-    } catch {
-      setSubcategories([]);
+      setSubLoading(true);
+      const data = await apiRequest("/subcategories/");
+      setSubcategories(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setMessage(`Request error: ${err.message || "Unable to load subcategories"}`);
+    } finally {
+      setSubLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(subcategories));
-  }, [subcategories]);
+  };
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const res = await axios.get("http://localhost:5000/api/categories/");
-        setCategories(res.data);
-      } catch {
-        setMessage("Request error: Unable to load categories");
+        const data = await apiRequest("/categories/");
+        setCategories(Array.isArray(data) ? data : []);
+      } catch (err) {
+        setMessage(`Request error: ${err.message || "Unable to load categories"}`);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCategories();
+    fetchCategories().then(() => fetchSubcategories());
   }, []);
 
   useEffect(() => {
@@ -58,7 +53,7 @@ function Subcategories() {
     [categories]
   );
 
-  const handleAdd = (e) => {
+  const handleAdd = async (e) => {
     e.preventDefault();
 
     const trimmedName = name.trim();
@@ -71,33 +66,31 @@ function Subcategories() {
       return;
     }
 
-    const isDuplicate = subcategories.some(
-      (item) =>
-        item.categoryId === String(categoryId) &&
-        item.name.toLowerCase() === trimmedName.toLowerCase()
-    );
-    if (isDuplicate) {
-      setMessage("Request error: Subcategory already exists in this category");
-      return;
+    try {
+      setSubmitting(true);
+      await apiRequest("/subcategories/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: trimmedName,
+          category_id: Number(categoryId),
+        }),
+      });
+      await fetchSubcategories();
+      setName("");
+      setCategoryId("");
+      setMessage("Success! Subcategory created");
+    } catch (err) {
+      setMessage(`Request error: ${err.message || "Failed to create subcategory"}`);
+    } finally {
+      setSubmitting(false);
     }
-
-    const nextItem = {
-      id: Date.now(),
-      name: trimmedName,
-      categoryId: String(categoryId),
-      createdAt: new Date().toISOString(),
-    };
-
-    setSubcategories((prev) => [nextItem, ...prev]);
-    setName("");
-    setCategoryId("");
-    setMessage("Success! Subcategory created");
   };
 
   const startEdit = (item) => {
-    setEditingId(item.id);
+    setEditingId(item.subcategory_id);
     setEditingName(item.name);
-    setEditingCategoryId(item.categoryId);
+    setEditingCategoryId(String(item.category_id));
   };
 
   const cancelEdit = () => {
@@ -106,7 +99,7 @@ function Subcategories() {
     setEditingCategoryId("");
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     const trimmedName = editingName.trim();
     if (!trimmedName) {
       setMessage("Request error: Subcategory name is required");
@@ -117,34 +110,40 @@ function Subcategories() {
       return;
     }
 
-    const isDuplicate = subcategories.some(
-      (item) =>
-        item.id !== editingId &&
-        item.categoryId === String(editingCategoryId) &&
-        item.name.toLowerCase() === trimmedName.toLowerCase()
-    );
-    if (isDuplicate) {
-      setMessage("Request error: Subcategory already exists in this category");
-      return;
+    try {
+      setSubmitting(true);
+      await apiRequest(`/subcategories/${editingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: trimmedName,
+          category_id: Number(editingCategoryId),
+        }),
+      });
+      await fetchSubcategories();
+      cancelEdit();
+      setMessage("Success! Subcategory updated");
+    } catch (err) {
+      setMessage(`Request error: ${err.message || "Failed to update subcategory"}`);
+    } finally {
+      setSubmitting(false);
     }
-
-    setSubcategories((prev) =>
-      prev.map((item) =>
-        item.id === editingId
-          ? { ...item, name: trimmedName, categoryId: String(editingCategoryId) }
-          : item
-      )
-    );
-    cancelEdit();
-    setMessage("Success! Subcategory updated");
   };
 
-  const removeSubcategory = (id) => {
-    setSubcategories((prev) => prev.filter((item) => item.id !== id));
-    if (editingId === id) {
-      cancelEdit();
+  const removeSubcategory = async (id) => {
+    try {
+      setSubmitting(true);
+      await apiRequest(`/subcategories/${id}`, { method: "DELETE" });
+      if (editingId === id) {
+        cancelEdit();
+      }
+      await fetchSubcategories();
+      setMessage("Success! Subcategory deleted");
+    } catch (err) {
+      setMessage(`Request error: ${err.message || "Failed to delete subcategory"}`);
+    } finally {
+      setSubmitting(false);
     }
-    setMessage("Success! Subcategory deleted");
   };
 
   return (
@@ -177,9 +176,9 @@ function Subcategories() {
         <button
           type="submit"
           className="px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:scale-105 active:scale-95 transition transform shadow-md disabled:opacity-50"
-          disabled={loading || categories.length === 0}
+          disabled={loading || categories.length === 0 || submitting}
         >
-          Add
+          {submitting ? "Saving..." : "Add"}
         </button>
       </form>
 
@@ -189,7 +188,11 @@ function Subcategories() {
         </p>
       )}
 
-      {subcategories.length === 0 ? (
+      {subLoading ? (
+        <div className="text-center py-12 text-gray-400">
+          <p className="text-lg">Loading subcategories...</p>
+        </div>
+      ) : subcategories.length === 0 ? (
         <div className="text-center py-12 text-gray-400">
           <p className="text-lg">No subcategories yet</p>
           <p className="text-sm">Create your first subcategory above</p>
@@ -198,10 +201,10 @@ function Subcategories() {
         <div className="grid md:grid-cols-2 gap-4">
           {subcategories.map((item) => (
             <div
-              key={item.id}
+              key={item.subcategory_id}
               className="group flex flex-col gap-3 px-5 py-4 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all"
             >
-              {editingId === item.id ? (
+              {editingId === item.subcategory_id ? (
                 <>
                   <input
                     type="text"
@@ -213,6 +216,7 @@ function Subcategories() {
                     value={editingCategoryId}
                     onChange={(e) => setEditingCategoryId(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={submitting}
                   >
                     <option value="">Select category</option>
                     {categories.map((cat) => (
@@ -224,13 +228,15 @@ function Subcategories() {
                   <div className="flex gap-2">
                     <button
                       onClick={saveEdit}
-                      className="text-sm px-3 py-1 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition"
+                      disabled={submitting}
+                      className="text-sm px-3 py-1 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition disabled:opacity-50"
                     >
                       Save
                     </button>
                     <button
                       onClick={cancelEdit}
-                      className="text-sm px-3 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
+                      disabled={submitting}
+                      className="text-sm px-3 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition disabled:opacity-50"
                     >
                       Cancel
                     </button>
@@ -241,19 +247,21 @@ function Subcategories() {
                   <div>
                     <p className="font-medium text-gray-700">{item.name}</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Category: {categoryMap.get(item.categoryId) || "Unknown"}
+                      Category: {item.category_name || categoryMap.get(String(item.category_id)) || "Unknown"}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
                     <button
                       onClick={() => startEdit(item)}
-                      className="text-sm px-3 py-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+                      disabled={submitting}
+                      className="text-sm px-3 py-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition disabled:opacity-50"
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => removeSubcategory(item.id)}
-                      className="text-sm px-3 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition"
+                      onClick={() => removeSubcategory(item.subcategory_id)}
+                      disabled={submitting}
+                      className="text-sm px-3 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition disabled:opacity-50"
                     >
                       Delete
                     </button>

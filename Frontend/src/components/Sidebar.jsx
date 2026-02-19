@@ -1,6 +1,6 @@
 import React from "react";
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   FaHome,
   FaUser,
@@ -17,6 +17,13 @@ import { IoStatsChart } from "react-icons/io5";
 
 function Sidebar1() {
   const [openMenu, setOpenMenu] = useState(null);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login", { replace: true, state: { message: "Logged out successfully" } });
+  };
 
   const menuItems = [
     { title: "Dashboard", icon: <FaHome />, path: "/" },
@@ -107,7 +114,7 @@ function Sidebar1() {
 
         {/* Logout */}
         <button
-          onClick={() => console.log("Logging out...")}
+          onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-900/40 transition font-medium w-full text-left cursor-pointer"
         >
           <FaSignOutAlt className="text-lg" />

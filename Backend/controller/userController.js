@@ -5,15 +5,13 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
 const query = util.promisify(connection.query).bind(connection);
-const beginTransaction = util.promisify(connection.beginTransaction).bind(connection);
-const commit = util.promisify(connection.commit).bind(connection);
-const rollback = util.promisify(connection.rollback).bind(connection);
 
 //////////////////////////////////////////////////
 // CREATE USER
 //////////////////////////////////////////////////
 
 const createUser = async (req, res) => {
+  let tx = null;
   try {
     const { name, email, password, status, role_id } = req.body;
 
@@ -52,18 +50,19 @@ const createUser = async (req, res) => {
     if (status !== undefined && status !== null && String(status).trim() !== "") {
       userPayload.status = String(status).trim();
     }
-    await beginTransaction();
+    tx = await connection.promise().getConnection();
+    await tx.beginTransaction();
 
-    const result = await query('INSERT INTO users SET ?', userPayload);
+    const [result] = await tx.query('INSERT INTO users SET ?', userPayload);
 
     if (parsedRoleId) {
-      await query('INSERT INTO role_assign SET ?', {
+      await tx.query('INSERT INTO role_assign SET ?', {
         user_id: result.insertId,
         role_id: parsedRoleId,
       });
     }
 
-    await commit();
+    await tx.commit();
 
     res.status(201).json({
       message: "User created successfully",
@@ -73,12 +72,18 @@ const createUser = async (req, res) => {
     console.error("createUser failed:", error.message);
 
     try {
-      await rollback();
+      if (tx) {
+        await tx.rollback();
+      }
     } catch (rollbackError) {
       console.error("Rollback failed:", rollbackError.message);
     }
 
     res.status(500).json({ error: error.message });
+  } finally {
+    if (tx) {
+      tx.release();
+    }
   }
 };
 
@@ -144,6 +149,7 @@ const loginUser = async (req, res) => {
 };
 
 const updateUser = async (req, res) => {
+  let tx = null;
   try {
     const userId = Number(req.params.id);
     const { name, email, role_id, status } = req.body;
@@ -196,9 +202,10 @@ const updateUser = async (req, res) => {
       }
     }
 
-    await beginTransaction();
+    tx = await connection.promise().getConnection();
+    await tx.beginTransaction();
 
-    await query("UPDATE users SET name = ?, email = ?, status = ? WHERE user_id = ?", [
+    await tx.query("UPDATE users SET name = ?, email = ?, status = ? WHERE user_id = ?", [
       String(name).trim(),
       emailValue,
       statusValue,
@@ -206,15 +213,15 @@ const updateUser = async (req, res) => {
     ]);
 
     // Keep role_assign as the single source of user-role mapping.
-    await query("DELETE FROM role_assign WHERE user_id = ?", [userId]);
+    await tx.query("DELETE FROM role_assign WHERE user_id = ?", [userId]);
     if (parsedRoleId !== null) {
-      await query("INSERT INTO role_assign SET ?", {
+      await tx.query("INSERT INTO role_assign SET ?", {
         user_id: userId,
         role_id: parsedRoleId,
       });
     }
 
-    await commit();
+    await tx.commit();
 
     return res.status(200).json({
       message: "User updated successfully",
@@ -222,11 +229,17 @@ const updateUser = async (req, res) => {
     });
   } catch (error) {
     try {
-      await rollback();
+      if (tx) {
+        await tx.rollback();
+      }
     } catch (rollbackError) {
       console.error("Rollback failed:", rollbackError.message);
     }
     return res.status(500).json({ error: error.message });
+  } finally {
+    if (tx) {
+      tx.release();
+    }
   }
 };
 

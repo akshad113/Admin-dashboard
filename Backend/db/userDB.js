@@ -1,18 +1,22 @@
 const mysql2 = require("mysql2");
 
-const userDB = mysql2.createConnection({
+const userDB = mysql2.createPool({
   host: "localhost",
   user: "root",
   password: "1717",
-  database: "learningdb"
+  database: "admin_dashboard_db",
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
 });
 
-userDB.connect((err) => {
+userDB.getConnection((err, connection) => {
   if (err) {
     console.log("There is error while connecting to server", err);
-  } else {
-    console.log("The app is connected to SQL database");
+    return;
   }
+  console.log("The app is connected to SQL database");
+  connection.release();
 });
 
 module.exports = userDB;
