@@ -22,6 +22,7 @@ function Sidebar1() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("portal");
     navigate("/login", { replace: true, state: { message: "Logged out successfully" } });
   };
 

@@ -5,13 +5,21 @@ import Orders from "../pages/Orders";
 import Products from "../pages/Products";
 import Profile from "../pages/Profile";
 import DashboardLayout from "../layouts/DashboardLayout";
+import ProtectedRoute from "../components/ProtectedRoute";
 
 function Router() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<DashboardLayout />}>
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Dashboard />} />
           <Route path="products" element={<Products />} />
           <Route path="orders" element={<Orders />} />

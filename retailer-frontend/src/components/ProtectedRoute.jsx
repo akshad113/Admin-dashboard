@@ -1,10 +1,10 @@
 import { Navigate } from "react-router-dom";
 
-const ProtectedRoute = ({ children }) => {
+function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
   const portal = localStorage.getItem("portal");
 
-  if (!token || portal !== "admin") {
+  if (!token || portal !== "retailer") {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("portal");
@@ -12,6 +12,6 @@ const ProtectedRoute = ({ children }) => {
   }
 
   return children;
-};
+}
 
 export default ProtectedRoute;

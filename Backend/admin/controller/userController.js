@@ -60,6 +60,17 @@ const createUser = async (req, res) => {
         user_id: result.insertId,
         role_id: parsedRoleId,
       });
+    } else {
+      const [retailerRoleRows] = await tx.query(
+        "SELECT role_id FROM roles WHERE LOWER(role_name) = 'retailer' LIMIT 1"
+      );
+
+      if (retailerRoleRows.length > 0) {
+        await tx.query('INSERT INTO role_assign SET ?', {
+          user_id: result.insertId,
+          role_id: retailerRoleRows[0].role_id,
+        });
+      }
     }
 
     await tx.commit();
@@ -93,13 +104,7 @@ const createUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        error: 'Email and password are required',
-      });
-    }
+    const { email, password, portal } = req.body;
 
     const users = await query("SELECT * FROM users WHERE email = ?", [email]);
 
@@ -125,10 +130,36 @@ const loginUser = async (req, res) => {
       });
     }
 
+    const roleRows = await query(
+      `SELECT r.role_name
+       FROM role_assign ra
+       INNER JOIN roles r ON r.role_id = ra.role_id
+       WHERE ra.user_id = ?`,
+      [user.user_id]
+    );
+
+    const roleNames = roleRows.map((row) => String(row.role_name || "").toLowerCase());
+    const isAdmin = roleNames.includes("admin");
+    const isRetailer = roleNames.includes("retailer");
+    const requestedPortal = String(portal || "").trim().toLowerCase();
+
+    if (requestedPortal === "admin" && !isAdmin) {
+      return res.status(403).json({
+        error: "Access denied. Admin account required.",
+      });
+    }
+
+    if (requestedPortal === "retailer" && !isRetailer) {
+      return res.status(403).json({
+        error: "Access denied. Retailer account required.",
+      });
+    }
+
     const token = jwt.sign(
       {
         id: user.user_id,
         email: user.email,
+        roles: roleNames,
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN }
@@ -141,6 +172,9 @@ const loginUser = async (req, res) => {
         id: user.user_id,
         name: user.name,
         email: user.email,
+        roles: roleNames,
+        isAdmin,
+        isRetailer,
       },
     });
   } catch (error) {

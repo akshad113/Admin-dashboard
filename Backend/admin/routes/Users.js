@@ -3,6 +3,8 @@ const router = express.Router();
 
 const { createUser, loginUser, updateUser, toggleUserStatus } = require('../controller/userController');
 const verifyToken = require('../../middleware/authMiddleware');
+const validate = require('../../middleware/validate');
+const { userSchemas } = require('../../validation/schemas');
 const userDB = require('../../db/userDB');
 
 /////////////////////////////////////////////////
@@ -10,10 +12,10 @@ const userDB = require('../../db/userDB');
 /////////////////////////////////////////////////
 
 // Create user
-router.post('/createuser', createUser);
+router.post('/createuser', validate(userSchemas.createUser), createUser);
 
 // Login
-router.post('/login', loginUser);
+router.post('/login', validate(userSchemas.loginUser), loginUser);
 
 
 /////////////////////////////////////////////////
@@ -50,8 +52,7 @@ router.get('/roles', verifyToken, (req, res) => {
   });
 });
 
-router.put('/users/:id/status', verifyToken, toggleUserStatus);
-router.put('/users/:id', verifyToken, updateUser);
+router.put('/users/:id/status', verifyToken, validate(userSchemas.toggleUserStatus), toggleUserStatus);
+router.put('/users/:id', verifyToken, validate(userSchemas.updateUser), updateUser);
 
 module.exports = router;
-

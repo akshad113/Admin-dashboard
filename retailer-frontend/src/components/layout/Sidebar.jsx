@@ -1,12 +1,21 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 function Sidebar() {
+  const navigate = useNavigate();
+
   const linkClass = ({ isActive }) =>
     `rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
       isActive
         ? "bg-blue-600 text-white shadow"
         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
     }`;
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("portal");
+    navigate("/login", { replace: true, state: { message: "Logged out successfully" } });
+  };
 
   return (
     <aside className="w-full border-b border-slate-200 bg-white/95 px-4 py-4 shadow-sm backdrop-blur md:w-64 md:border-b-0 md:border-r md:px-5 md:py-6">
@@ -31,9 +40,13 @@ function Sidebar() {
         <NavLink to="/profile" className={linkClass}>
           Profile
         </NavLink>
-        <NavLink to="/login" className={linkClass}>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="rounded-lg px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700 md:text-left"
+        >
           Logout
-        </NavLink>
+        </button>
       </nav>
     </aside>
   );
