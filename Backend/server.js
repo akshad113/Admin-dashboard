@@ -3,9 +3,9 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
-const userRouter = require('./routes/Users');
-const categoryRouter = require('./routes/Categories');
-const subcategoryRouter = require('./routes/Subcategories');
+const userRouter = require('./admin/routes/Users');
+const categoryRouter = require('./admin/routes/Categories');
+const subcategoryRouter = require('./admin/routes/Subcategories');
 const userDB = require('./db/userDB'); 
 
 const app = express();
@@ -60,3 +60,4 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+

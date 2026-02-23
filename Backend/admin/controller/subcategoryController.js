@@ -1,4 +1,4 @@
-const connection = require("../db/userDB");
+const connection = require("../../db/userDB");
 const util = require("util");
 
 const query = util.promisify(connection.query).bind(connection);
@@ -170,3 +170,5 @@ module.exports = {
   updateSubcategory,
   deleteSubcategory,
 };
+
+

@@ -1,4 +1,4 @@
-const connection = require('../db/userDB');
+const connection = require('../../db/userDB');
 const util = require('util');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -286,3 +286,5 @@ module.exports = {
   updateUser,
   toggleUserStatus,
 };
+
+

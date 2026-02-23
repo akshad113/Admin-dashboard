@@ -1,4 +1,4 @@
-const connection = require('../db/userDB')
+const connection = require('../../db/userDB')
 const util = require('util')
 
 
@@ -140,3 +140,5 @@ module.exports = {
     updateCategorie,
     deleteCategorie,
 };
+
+
