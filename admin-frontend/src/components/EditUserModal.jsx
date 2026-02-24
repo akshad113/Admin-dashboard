@@ -1,6 +1,41 @@
 import { useEffect, useState } from "react";
 import { apiRequest } from "../lib/api";
 
+const validateUpdateUser = ({ name, email, roleId, status }) => {
+  const errors = {};
+  const normalizedName = String(name || "").trim();
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedStatus = String(status || "").trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const parsedRoleId = Number(roleId);
+
+  if (!normalizedName) {
+    errors.name = "Name is required";
+  } else if (normalizedName.length < 2) {
+    errors.name = "Name must be at least 2 characters";
+  } else if (normalizedName.length > 100) {
+    errors.name = "Name must be at most 100 characters";
+  }
+
+  if (!normalizedEmail) {
+    errors.email = "Email is required";
+  } else if (!emailRegex.test(normalizedEmail)) {
+    errors.email = "Please enter a valid email";
+  }
+
+  if (!roleId) {
+    errors.roleId = "Role is required";
+  } else if (!Number.isInteger(parsedRoleId) || parsedRoleId <= 0) {
+    errors.roleId = "Please select a valid role";
+  }
+
+  if (!["active", "inactive"].includes(normalizedStatus)) {
+    errors.status = "Status must be active or inactive";
+  }
+
+  return errors;
+};
+
 function EditUserModal({ user, onClose, onSaved }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -10,6 +45,7 @@ function EditUserModal({ user, onClose, onSaved }) {
   const [loadingRoles, setLoadingRoles] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     if (!user) return;
@@ -33,6 +69,20 @@ function EditUserModal({ user, onClose, onSaved }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
+
+    const validationErrors = validateUpdateUser({
+      name,
+      email,
+      roleId,
+      status,
+    });
+
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -40,10 +90,10 @@ function EditUserModal({ user, onClose, onSaved }) {
         method: "PUT", // your backend route
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name,
-          email,
-          role_id: roleId ? Number(roleId) : null,
-          status,
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          role_id: Number(roleId),
+          status: String(status).toLowerCase(),
         }),
       });
 
@@ -64,30 +114,46 @@ function EditUserModal({ user, onClose, onSaved }) {
       <div className="relative mx-auto mt-20 w-[95%] max-w-xl rounded-xl bg-white p-6 shadow-2xl">
         <h3 className="mb-4 text-lg font-semibold text-slate-900">Edit User</h3>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
           <input
-            className="w-full rounded-lg border border-slate-300 px-3 py-2"
+            className={`w-full rounded-lg px-3 py-2 ${
+              fieldErrors.name ? "border border-red-400" : "border border-slate-300"
+            }`}
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              setFieldErrors((prev) => ({ ...prev, name: "" }));
+            }}
             placeholder="Name"
-            required
           />
+          {fieldErrors.name ? <p className="text-xs text-red-600">{fieldErrors.name}</p> : null}
 
           <input
-            type="email"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2"
+            type="text"
+            inputMode="email"
+            className={`w-full rounded-lg px-3 py-2 ${
+              fieldErrors.email ? "border border-red-400" : "border border-slate-300"
+            }`}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setFieldErrors((prev) => ({ ...prev, email: "" }));
+            }}
             placeholder="Email"
-            required
           />
+          {fieldErrors.email ? <p className="text-xs text-red-600">{fieldErrors.email}</p> : null}
 
           <select
-            className="w-full rounded-lg border border-slate-300 px-3 py-2"
+            className={`w-full rounded-lg px-3 py-2 ${
+              fieldErrors.roleId ? "border border-red-400" : "border border-slate-300"
+            }`}
             value={roleId}
-            onChange={(e) => setRoleId(e.target.value)}
+            onChange={(e) => {
+              setRoleId(e.target.value);
+              setFieldErrors((prev) => ({ ...prev, roleId: "" }));
+            }}
             disabled={loadingRoles}
           >
             <option value="">{loadingRoles ? "Loading roles..." : "Select role"}</option>
@@ -97,15 +163,22 @@ function EditUserModal({ user, onClose, onSaved }) {
               </option>
             ))}
           </select>
+          {fieldErrors.roleId ? <p className="text-xs text-red-600">{fieldErrors.roleId}</p> : null}
 
           <select
-            className="w-full rounded-lg border border-slate-300 px-3 py-2"
+            className={`w-full rounded-lg px-3 py-2 ${
+              fieldErrors.status ? "border border-red-400" : "border border-slate-300"
+            }`}
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setFieldErrors((prev) => ({ ...prev, status: "" }));
+            }}
           >
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
+          {fieldErrors.status ? <p className="text-xs text-red-600">{fieldErrors.status}</p> : null}
 
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} className="rounded-lg bg-slate-200 px-4 py-2">
@@ -113,7 +186,7 @@ function EditUserModal({ user, onClose, onSaved }) {
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || loadingRoles}
               className="rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
             >
               {saving ? "Saving..." : "Save Changes"}

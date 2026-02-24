@@ -1,18 +1,50 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import { apiRequest } from "../lib/api";
+
+const validateLoginForm = ({ email, password }) => {
+  const normalizedEmail = String(email || "").trim();
+  const normalizedPassword = String(password || "");
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!normalizedEmail || !normalizedPassword) {
+    return "Email and password are required";
+  }
+
+  if (!emailRegex.test(normalizedEmail)) {
+    return "Please enter a valid email";
+  }
+
+  if (normalizedPassword.length < 6) {
+    return "Password must be at least 6 characters";
+  }
+
+  return null;
+};
 
 const LogIn = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (location.state?.message) {
+      toast.success(location.state.message);
+    }
+  }, [location.state]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
+
+    const validationError = validateLoginForm({ email, password });
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -21,14 +53,15 @@ const LogIn = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user || {}));
+      toast.success("Login successful");
       navigate("/");
     } catch (err) {
-      setError(err.message || "Login failed");
+      toast.error(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -38,21 +71,19 @@ const LogIn = () => {
     <div className="flex items-center justify-center min-h-screen bg-slate-200">
       <form
         onSubmit={handleLogin}
+        noValidate
         className="bg-white p-8 rounded shadow-md w-96"
       >
         <h2 className="text-2xl font-bold mb-6 text-center">Admin Login</h2>
 
-        {location.state?.message ? (
-          <p className="mb-4 text-sm text-green-700">{location.state.message}</p>
-        ) : null}
-
         <input
-          type="email"
+          type="text"
+          inputMode="email"
           placeholder="Email"
           className="w-full mb-4 p-2 border rounded"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          required
+          autoComplete="email"
         />
 
         <input
@@ -61,10 +92,8 @@ const LogIn = () => {
           className="w-full mb-4 p-2 border rounded"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          required
+          autoComplete="current-password"
         />
-
-        {error ? <p className="mb-4 text-sm text-red-600">{error}</p> : null}
 
         <button
           className="w-full bg-blue-600 text-white p-2 rounded disabled:opacity-60"

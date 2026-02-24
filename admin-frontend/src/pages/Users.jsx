@@ -199,11 +199,20 @@ function Users() {
                   </span>
                 </td>
                 <td className="px-4">
-                  <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${getStatusClasses(u.status)}`}
-                  >
-                    {u.status}
-                  </span>
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={String(u.status || "").toLowerCase() === "active"}
+                      onChange={() => handleToggleStatus(u.user_id)}
+                    />
+                    <div className="relative w-11 h-6 bg-slate-300 rounded-full peer peer-checked:bg-emerald-500 transition">
+                      <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition peer-checked:translate-x-5"></div>
+                    </div>
+                    <span className="ml-2 text-xs font-semibold text-slate-700">
+                      {u.status}
+                    </span>
+                  </label>
                 </td>
                 <td className="px-4 text-center">
                   <button
@@ -211,14 +220,6 @@ function Users() {
                     onClick={() => setEditingUser(u)}
                   >
                     Edit
-                  </button>
-                  <button
-                    className="rounded-lg border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
-                    onClick={() => handleToggleStatus(u.user_id)}
-                  >
-                    {(String(u.status || "").toLowerCase() === "active")
-                      ? "Deactivate"
-                      : "Activate"}
                   </button>
                 </td>
               </tr>

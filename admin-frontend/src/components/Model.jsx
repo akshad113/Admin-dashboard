@@ -1,6 +1,36 @@
 import React, { useEffect, useState } from "react";
 import { apiRequest } from "../lib/api";
 
+const validateCreateUser = ({ name, email, roleId }) => {
+  const errors = {};
+  const normalizedName = String(name || "").trim();
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const parsedRoleId = Number(roleId);
+
+  if (!normalizedName) {
+    errors.name = "Name is required";
+  } else if (normalizedName.length < 2) {
+    errors.name = "Name must be at least 2 characters";
+  } else if (normalizedName.length > 100) {
+    errors.name = "Name must be at most 100 characters";
+  }
+
+  if (!normalizedEmail) {
+    errors.email = "Email is required";
+  } else if (!emailRegex.test(normalizedEmail)) {
+    errors.email = "Please enter a valid email";
+  }
+
+  if (!roleId) {
+    errors.roleId = "Role is required";
+  } else if (!Number.isInteger(parsedRoleId) || parsedRoleId <= 0) {
+    errors.roleId = "Please select a valid role";
+  }
+
+  return errors;
+};
+
 function Model({ onClose, onUserCreated }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -9,6 +39,7 @@ function Model({ onClose, onUserCreated }) {
   const [loadingRoles, setLoadingRoles] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     let isMounted = true;
@@ -36,6 +67,14 @@ function Model({ onClose, onUserCreated }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
+
+    const validationErrors = validateCreateUser({ name, email, roleId });
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -45,9 +84,9 @@ function Model({ onClose, onUserCreated }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name,
-          email,
-          role_id: roleId ? Number(roleId) : undefined,
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          role_id: Number(roleId),
         }),
       });
     } catch (error) {
@@ -88,7 +127,7 @@ function Model({ onClose, onUserCreated }) {
             Add New User
           </h3>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
             <div>
@@ -98,10 +137,15 @@ function Model({ onClose, onUserCreated }) {
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setFieldErrors((prev) => ({ ...prev, name: "" }));
+                }}
+                className={`mt-1 block w-full rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  fieldErrors.name ? "border border-red-400" : "border border-gray-300"
+                }`}
               />
+              {fieldErrors.name ? <p className="mt-1 text-xs text-red-600">{fieldErrors.name}</p> : null}
             </div>
 
             <div>
@@ -109,12 +153,18 @@ function Model({ onClose, onUserCreated }) {
                 Email
               </label>
               <input
-                type="email"
+                type="text"
+                inputMode="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setFieldErrors((prev) => ({ ...prev, email: "" }));
+                }}
+                className={`mt-1 block w-full rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  fieldErrors.email ? "border border-red-400" : "border border-gray-300"
+                }`}
               />
+              {fieldErrors.email ? <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p> : null}
             </div>
 
             <div>
@@ -123,10 +173,14 @@ function Model({ onClose, onUserCreated }) {
               </label>
               <select
                 value={roleId}
-                onChange={(e) => setRoleId(e.target.value)}
-                required
+                onChange={(e) => {
+                  setRoleId(e.target.value);
+                  setFieldErrors((prev) => ({ ...prev, roleId: "" }));
+                }}
                 disabled={loadingRoles}
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`mt-1 block w-full rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  fieldErrors.roleId ? "border border-red-400" : "border border-gray-300"
+                }`}
               >
                 <option value="">
                   {loadingRoles ? "Loading roles..." : "Select Role"}
@@ -137,6 +191,7 @@ function Model({ onClose, onUserCreated }) {
                   </option>
                 ))}
               </select>
+              {fieldErrors.roleId ? <p className="mt-1 text-xs text-red-600">{fieldErrors.roleId}</p> : null}
             </div>
 
             <div className="flex justify-end space-x-2">

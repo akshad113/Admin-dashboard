@@ -6,6 +6,7 @@ const cors = require('cors');
 const userRouter = require('./admin/routes/Users');
 const categoryRouter = require('./admin/routes/Categories');
 const subcategoryRouter = require('./admin/routes/Subcategories');
+const productRouter = require('./retailer/routes/Products');
 const userDB = require('./db/userDB'); 
 
 const app = express();
@@ -42,6 +43,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api', userRouter);
 app.use('/api/categories', categoryRouter);
 app.use('/api/subcategories', subcategoryRouter);
+app.use('/api/products', productRouter);
 
 /////////////////////////////////////////////////
 // TEST ROUTE

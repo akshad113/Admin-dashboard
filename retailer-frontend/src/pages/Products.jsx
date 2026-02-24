@@ -1,8 +1,148 @@
+import { useEffect, useState } from "react";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
-import Table from "../components/ui/Table";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+
+const initialForm = {
+  name: "",
+  categoryId: "",
+  price: "",
+  stockQuantity: "0",
+  description: "",
+};
+
+const validateProductForm = (form) => {
+  const errors = {};
+  const normalizedName = String(form.name || "").trim();
+  const normalizedDescription = String(form.description || "").trim();
+  const parsedCategoryId = Number.parseInt(form.categoryId, 10);
+  const parsedPrice = Number(form.price);
+  const parsedStock = Number.parseInt(form.stockQuantity, 10);
+
+  if (!normalizedName) {
+    errors.name = "Product name is required";
+  } else if (normalizedName.length < 2) {
+    errors.name = "Product name must be at least 2 characters";
+  }
+
+  if (!form.categoryId) {
+    errors.categoryId = "Category is required";
+  } else if (!Number.isInteger(parsedCategoryId) || parsedCategoryId <= 0) {
+    errors.categoryId = "Please select a valid category";
+  }
+
+  if (form.price === "") {
+    errors.price = "Price is required";
+  } else if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+    errors.price = "Price must be a non-negative number";
+  }
+
+  if (form.stockQuantity === "") {
+    errors.stockQuantity = "Stock quantity is required";
+  } else if (!Number.isInteger(parsedStock) || parsedStock < 0) {
+    errors.stockQuantity = "Stock quantity must be a non-negative integer";
+  }
+
+  if (normalizedDescription.length > 500) {
+    errors.description = "Description must be at most 500 characters";
+  }
+
+  return errors;
+};
 
 function Products() {
+  const [form, setForm] = useState(initialForm);
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [formErrors, setFormErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState({ type: "", text: "" });
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      setCategoriesLoading(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/categories`);
+        const payload = await response.json();
+
+        if (!response.ok) {
+          const message = payload?.error || payload?.message || "Failed to load categories";
+          throw new Error(message);
+        }
+
+        setCategories(Array.isArray(payload) ? payload : []);
+      } catch (error) {
+        setSubmitMessage({
+          type: "error",
+          text: error.message || "Failed to load categories",
+        });
+        setCategories([]);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
+  const handleChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setFormErrors((prev) => ({ ...prev, [field]: "" }));
+    setSubmitMessage({ type: "", text: "" });
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSubmitMessage({ type: "", text: "" });
+
+    const errors = validateProductForm(form);
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/products/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          description: form.description.trim() || null,
+          price: Number(form.price),
+          stock_quantity: Number.parseInt(form.stockQuantity, 10),
+          category_id: Number.parseInt(form.categoryId, 10),
+        }),
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        const message = payload?.error || payload?.message || "Failed to create product";
+        throw new Error(message);
+      }
+
+      setSubmitMessage({ type: "success", text: "Product created successfully" });
+      setForm(initialForm);
+      setFormErrors({});
+    } catch (error) {
+      setSubmitMessage({
+        type: "error",
+        text: error.message || "Failed to create product",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputClass = (hasError) =>
+    `w-full rounded-lg px-3 py-2.5 text-sm ${
+      hasError ? "border border-red-400" : "border border-slate-200"
+    }`;
+
   return (
     <div className="space-y-6">
       <div>
@@ -10,34 +150,66 @@ function Products() {
         <p className="mt-1 text-sm text-slate-500">Create and review your catalog items.</p>
       </div>
 
-      <Card title="Add Product" subtitle="Static form UI for adding a new product.">
-        <form className="grid gap-4 md:grid-cols-2">
+      <Card title="Add Product" subtitle="Create a new product and link it with category from database.">
+        <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit} noValidate>
           <div>
             <label className="mb-1 block text-sm font-semibold text-slate-700">Product Name</label>
             <input
               type="text"
               placeholder="Premium Cotton T-Shirt"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm"
+              className={inputClass(Boolean(formErrors.name))}
+              value={form.name}
+              onChange={(e) => handleChange("name", e.target.value)}
             />
+            {formErrors.name ? <p className="mt-1 text-xs text-red-600">{formErrors.name}</p> : null}
           </div>
 
           <div>
             <label className="mb-1 block text-sm font-semibold text-slate-700">Category</label>
-            <select className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm">
-              <option>Apparel</option>
-              <option>Electronics</option>
-              <option>Home</option>
+            <select
+              className={inputClass(Boolean(formErrors.categoryId))}
+              value={form.categoryId}
+              onChange={(e) => handleChange("categoryId", e.target.value)}
+              disabled={categoriesLoading}
+            >
+              <option value="">
+                {categoriesLoading ? "Loading categories..." : "Select category"}
+              </option>
+              {categories.map((category) => (
+                <option key={category.category_id} value={category.category_id}>
+                  {category.name}
+                </option>
+              ))}
             </select>
+            {formErrors.categoryId ? <p className="mt-1 text-xs text-red-600">{formErrors.categoryId}</p> : null}
           </div>
 
           <div>
             <label className="mb-1 block text-sm font-semibold text-slate-700">Price</label>
-            <input type="text" placeholder="$49.00" className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm" />
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="49.00"
+              className={inputClass(Boolean(formErrors.price))}
+              value={form.price}
+              onChange={(e) => handleChange("price", e.target.value)}
+            />
+            {formErrors.price ? <p className="mt-1 text-xs text-red-600">{formErrors.price}</p> : null}
           </div>
 
           <div>
             <label className="mb-1 block text-sm font-semibold text-slate-700">Stock Quantity</label>
-            <input type="text" placeholder="120" className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm" />
+            <input
+              type="number"
+              min="0"
+              step="1"
+              placeholder="120"
+              className={inputClass(Boolean(formErrors.stockQuantity))}
+              value={form.stockQuantity}
+              onChange={(e) => handleChange("stockQuantity", e.target.value)}
+            />
+            {formErrors.stockQuantity ? <p className="mt-1 text-xs text-red-600">{formErrors.stockQuantity}</p> : null}
           </div>
 
           <div className="md:col-span-2">
@@ -45,58 +217,32 @@ function Products() {
             <textarea
               rows="4"
               placeholder="Write a short product description..."
-              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm"
+              className={inputClass(Boolean(formErrors.description))}
+              value={form.description}
+              onChange={(e) => handleChange("description", e.target.value)}
             />
+            {formErrors.description ? <p className="mt-1 text-xs text-red-600">{formErrors.description}</p> : null}
           </div>
 
+          {submitMessage.text ? (
+            <div className="md:col-span-2">
+              <p
+                className={`text-sm ${
+                  submitMessage.type === "success" ? "text-emerald-700" : "text-red-600"
+                }`}
+              >
+                {submitMessage.text}
+              </p>
+            </div>
+          ) : null}
+
           <div className="md:col-span-2">
-            <Button type="button">Save Product</Button>
+            <Button type="submit" disabled={submitting || categoriesLoading}>
+              {submitting ? "Saving..." : "Save Product"}
+            </Button>
           </div>
         </form>
       </Card>
-
-      <Table title="Product List" subtitle="Static preview of catalog items.">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
-            <tr>
-              <th className="px-5 py-3 font-semibold">Product</th>
-              <th className="px-5 py-3 font-semibold">SKU</th>
-              <th className="px-5 py-3 font-semibold">Price</th>
-              <th className="px-5 py-3 font-semibold">Stock</th>
-              <th className="px-5 py-3 font-semibold">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 text-slate-700">
-            <tr className="hover:bg-slate-50">
-              <td className="px-5 py-4 font-semibold">Noise Cancelling Headphones</td>
-              <td className="px-5 py-4">HDP-2201</td>
-              <td className="px-5 py-4">$129.00</td>
-              <td className="px-5 py-4">56</td>
-              <td className="px-5 py-4">
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Active</span>
-              </td>
-            </tr>
-            <tr className="hover:bg-slate-50">
-              <td className="px-5 py-4 font-semibold">Minimalist Desk Lamp</td>
-              <td className="px-5 py-4">LMP-8742</td>
-              <td className="px-5 py-4">$72.00</td>
-              <td className="px-5 py-4">14</td>
-              <td className="px-5 py-4">
-                <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Low Stock</span>
-              </td>
-            </tr>
-            <tr className="hover:bg-slate-50">
-              <td className="px-5 py-4 font-semibold">Running Sneakers</td>
-              <td className="px-5 py-4">SNK-4439</td>
-              <td className="px-5 py-4">$98.00</td>
-              <td className="px-5 py-4">0</td>
-              <td className="px-5 py-4">
-                <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">Out of Stock</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </Table>
     </div>
   );
 }

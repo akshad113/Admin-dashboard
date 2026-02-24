@@ -1,38 +1,46 @@
-# Admin Dashboard (React + Node + MySQL)
+# Ecommerce Admin + Retailer Dashboard (React + Node + MySQL)
 
-Full-stack admin dashboard with JWT authentication, user/role management, category CRUD, and subcategory CRUD.
+Full-stack ecommerce dashboard with a shared backend and two frontend apps:
+- `admin-frontend` for admin users/roles/categories/subcategories management
+- `retailer-frontend` for retailer product workflows
 
 ## Tech Stack
-- Frontend: React 19, Vite, Tailwind CSS, React Router, ApexCharts/Recharts
+- Frontends: React 19, Vite, Tailwind CSS, React Router
 - Backend: Node.js, Express, MySQL2, JWT, bcrypt
 - Database: MySQL 8
 
 ## Current Features
-- Login with JWT token
-- Protected routes (`/login` is public, all dashboard routes are protected)
-- Logout from sidebar (clears token and user, redirects to login)
-- Users management
-: create user, list users, update user, toggle active/inactive status
-- Roles listing for user assignment
+- Admin login with JWT token
+- Protected admin routes (`/login` is public, dashboard routes are protected)
+- Admin users management
+: create user, list users, edit user, and toggle active/inactive status
+- Client-side validation in admin create/edit/login forms
+- Toast notifications for admin auth and feedback
 - Categories management
 : create, list, update, delete
 - Subcategories management
-: create, list, update, delete (connected to backend + MySQL)
+: create, list, update, delete
+- Retailer product creation form connected to backend API
+- Backend product create endpoint with input normalization/validation
 
 ## Project Structure
 ```text
-admin-dashboard/
+ecommerce/
   Backend/
-    controller/
-    routes/
+    admin/
+    retailer/
     db/
     middleware/
     server.js
-  Frontend/
+  admin-frontend/
     src/
       components/
       pages/
       lib/
+  retailer-frontend/
+    src/
+      components/
+      pages/
 ```
 
 ## Backend Setup
@@ -62,19 +70,29 @@ npm start
 
 Backend runs on `http://localhost:5000`.
 
-## Frontend Setup
+## Admin Frontend Setup
 1. Install dependencies
 ```bash
-cd Frontend
+cd admin-frontend
 npm install
 ```
 
-2. Run frontend
+2. Run app
 ```bash
 npm run dev
 ```
 
-Frontend runs on `http://localhost:5173` (or next free port).
+## Retailer Frontend Setup
+1. Install dependencies
+```bash
+cd retailer-frontend
+npm install
+```
+
+2. Run app
+```bash
+npm run dev
+```
 
 ## Database Setup (MySQL)
 Run in MySQL:
@@ -138,6 +156,7 @@ ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
 ### Public
 - `POST /api/login` - login and get JWT
 - `POST /api/createuser` - create user
+- `POST /api/products/create` - create product
 
 ### Protected (Bearer token required)
 - `GET /api/users`
@@ -158,9 +177,9 @@ ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
 - `DELETE /api/subcategories/:id`
 
 ## Frontend API Behavior
-- Central API helper: `Frontend/src/lib/api.js`
+- Admin API helper: `admin-frontend/src/lib/api.js`
 - Uses `VITE_API_BASE_URL` if set, otherwise `/api`
-- Automatically attaches JWT from `localStorage`
+- Admin app automatically attaches JWT from `localStorage`
 
 ## CORS
 Backend allows:
@@ -169,6 +188,6 @@ Backend allows:
 - Any localhost port matching `http://localhost:<port>`
 
 ## Troubleshooting
-- If you get `404` on a new route, stop old Node processes and restart backend from `Backend/`.
+- If you get `404` on a new route, restart backend from `Backend/`.
 - If you get `Failed to fetch`, confirm backend is running and frontend is using the correct base URL/proxy.
 - If login works but protected APIs fail, verify token exists in localStorage and is sent as `Authorization: Bearer <token>`.
