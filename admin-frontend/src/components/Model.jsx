@@ -1,45 +1,49 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useFormik } from "formik";
 import { apiRequest } from "../lib/api";
-
-const validateCreateUser = ({ name, email, roleId }) => {
-  const errors = {};
-  const normalizedName = String(name || "").trim();
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const parsedRoleId = Number(roleId);
-
-  if (!normalizedName) {
-    errors.name = "Name is required";
-  } else if (normalizedName.length < 2) {
-    errors.name = "Name must be at least 2 characters";
-  } else if (normalizedName.length > 100) {
-    errors.name = "Name must be at most 100 characters";
-  }
-
-  if (!normalizedEmail) {
-    errors.email = "Email is required";
-  } else if (!emailRegex.test(normalizedEmail)) {
-    errors.email = "Please enter a valid email";
-  }
-
-  if (!roleId) {
-    errors.roleId = "Role is required";
-  } else if (!Number.isInteger(parsedRoleId) || parsedRoleId <= 0) {
-    errors.roleId = "Please select a valid role";
-  }
-
-  return errors;
-};
+import { createUserValidationSchema } from "../validation/schemas";
 
 function Model({ onClose, onUserCreated }) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [roleId, setRoleId] = useState("");
   const [roles, setRoles] = useState([]);
   const [loadingRoles, setLoadingRoles] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [fieldErrors, setFieldErrors] = useState({});
+
+  const formik = useFormik({
+    initialValues: {
+      name: "",
+      email: "",
+      roleId: "",
+    },
+    validationSchema: createUserValidationSchema,
+    onSubmit: async (values, { resetForm }) => {
+      setError("");
+
+      try {
+        await apiRequest("/createuser", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: values.name.trim(),
+            email: values.email.trim().toLowerCase(),
+            role_id: Number(values.roleId),
+          }),
+        });
+      } catch (err) {
+        console.error(err, "Error adding user to database");
+        setError(err.message || "Failed to create user");
+        return;
+      }
+
+      if (onUserCreated) {
+        await onUserCreated();
+      }
+
+      resetForm();
+      onClose();
+    },
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -64,46 +68,6 @@ function Model({ onClose, onUserCreated }) {
     };
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setFieldErrors({});
-
-    const validationErrors = validateCreateUser({ name, email, roleId });
-    if (Object.keys(validationErrors).length > 0) {
-      setFieldErrors(validationErrors);
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      await apiRequest("/createuser", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim().toLowerCase(),
-          role_id: Number(roleId),
-        }),
-      });
-    } catch (error) {
-      console.error(error, "Error adding user to database");
-      setError(error.message || "Failed to create user");
-      setSubmitting(false);
-      return;
-    }
-
-    if (onUserCreated) {
-      await onUserCreated();
-    }
-
-    setSubmitting(false);
-    onClose();
-  };
-
   return (
     <div className="fixed z-[100] inset-0 overflow-y-auto">
       <div
@@ -127,7 +91,7 @@ function Model({ onClose, onUserCreated }) {
             Add New User
           </h3>
 
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <form onSubmit={formik.handleSubmit} className="space-y-4" noValidate>
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
             <div>
@@ -135,17 +99,23 @@ function Model({ onClose, onUserCreated }) {
                 Name
               </label>
               <input
+                name="name"
                 type="text"
-                value={name}
+                value={formik.values.name}
                 onChange={(e) => {
-                  setName(e.target.value);
-                  setFieldErrors((prev) => ({ ...prev, name: "" }));
+                  formik.handleChange(e);
+                  setError("");
                 }}
+                onBlur={formik.handleBlur}
                 className={`mt-1 block w-full rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  fieldErrors.name ? "border border-red-400" : "border border-gray-300"
+                  formik.touched.name && formik.errors.name
+                    ? "border border-red-400"
+                    : "border border-gray-300"
                 }`}
               />
-              {fieldErrors.name ? <p className="mt-1 text-xs text-red-600">{fieldErrors.name}</p> : null}
+              {formik.touched.name && formik.errors.name ? (
+                <p className="mt-1 text-xs text-red-600">{formik.errors.name}</p>
+              ) : null}
             </div>
 
             <div>
@@ -153,18 +123,24 @@ function Model({ onClose, onUserCreated }) {
                 Email
               </label>
               <input
+                name="email"
                 type="text"
                 inputMode="email"
-                value={email}
+                value={formik.values.email}
                 onChange={(e) => {
-                  setEmail(e.target.value);
-                  setFieldErrors((prev) => ({ ...prev, email: "" }));
+                  formik.handleChange(e);
+                  setError("");
                 }}
+                onBlur={formik.handleBlur}
                 className={`mt-1 block w-full rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  fieldErrors.email ? "border border-red-400" : "border border-gray-300"
+                  formik.touched.email && formik.errors.email
+                    ? "border border-red-400"
+                    : "border border-gray-300"
                 }`}
               />
-              {fieldErrors.email ? <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p> : null}
+              {formik.touched.email && formik.errors.email ? (
+                <p className="mt-1 text-xs text-red-600">{formik.errors.email}</p>
+              ) : null}
             </div>
 
             <div>
@@ -172,14 +148,18 @@ function Model({ onClose, onUserCreated }) {
                 Role
               </label>
               <select
-                value={roleId}
+                name="roleId"
+                value={formik.values.roleId}
                 onChange={(e) => {
-                  setRoleId(e.target.value);
-                  setFieldErrors((prev) => ({ ...prev, roleId: "" }));
+                  formik.handleChange(e);
+                  setError("");
                 }}
+                onBlur={formik.handleBlur}
                 disabled={loadingRoles}
                 className={`mt-1 block w-full rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  fieldErrors.roleId ? "border border-red-400" : "border border-gray-300"
+                  formik.touched.roleId && formik.errors.roleId
+                    ? "border border-red-400"
+                    : "border border-gray-300"
                 }`}
               >
                 <option value="">
@@ -191,7 +171,9 @@ function Model({ onClose, onUserCreated }) {
                   </option>
                 ))}
               </select>
-              {fieldErrors.roleId ? <p className="mt-1 text-xs text-red-600">{fieldErrors.roleId}</p> : null}
+              {formik.touched.roleId && formik.errors.roleId ? (
+                <p className="mt-1 text-xs text-red-600">{formik.errors.roleId}</p>
+              ) : null}
             </div>
 
             <div className="flex justify-end space-x-2">
@@ -205,9 +187,9 @@ function Model({ onClose, onUserCreated }) {
               <button
                 type="submit"
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                disabled={loadingRoles || submitting}
+                disabled={loadingRoles || formik.isSubmitting}
               >
-                {submitting ? "Adding..." : "Add User"}
+                {formik.isSubmitting ? "Adding..." : "Add User"}
               </button>
             </div>
           </form>

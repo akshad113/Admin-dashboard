@@ -6,14 +6,16 @@ const {
   updateCategorie,
   deleteCategorie,
 } = require('../controller/categorieController')
+const { validateBody, validateParams } = require('../../middleware/validate');
+const { categorySchema, idParamSchema } = require('../../validation/schemas');
 
 
 //create the categorie
 
 router.get('/', getCategories)
-router.post('/create', createCategorie)
-router.put('/:id', updateCategorie)
-router.delete('/:id', deleteCategorie)
+router.post('/create', validateBody(categorySchema), createCategorie)
+router.put('/:id', validateParams(idParamSchema), validateBody(categorySchema), updateCategorie)
+router.delete('/:id', validateParams(idParamSchema), deleteCategorie)
 
 
 

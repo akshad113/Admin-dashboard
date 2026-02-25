@@ -7,10 +7,12 @@ const {
   updateSubcategory,
   deleteSubcategory,
 } = require("../controller/subcategoryController");
+const { validateBody, validateParams } = require("../../middleware/validate");
+const { subcategorySchema, idParamSchema } = require("../../validation/schemas");
 
 router.get("/", getSubcategories);
-router.post("/create", createSubcategory);
-router.put("/:id", updateSubcategory);
-router.delete("/:id", deleteSubcategory);
+router.post("/create", validateBody(subcategorySchema), createSubcategory);
+router.put("/:id", validateParams(idParamSchema), validateBody(subcategorySchema), updateSubcategory);
+router.delete("/:id", validateParams(idParamSchema), deleteSubcategory);
 
 module.exports = router;

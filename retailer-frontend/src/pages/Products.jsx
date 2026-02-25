@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { useFormik } from "formik";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
+import { productValidationSchema } from "../validation/schemas";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
@@ -12,52 +14,49 @@ const initialForm = {
   description: "",
 };
 
-const validateProductForm = (form) => {
-  const errors = {};
-  const normalizedName = String(form.name || "").trim();
-  const normalizedDescription = String(form.description || "").trim();
-  const parsedCategoryId = Number.parseInt(form.categoryId, 10);
-  const parsedPrice = Number(form.price);
-  const parsedStock = Number.parseInt(form.stockQuantity, 10);
-
-  if (!normalizedName) {
-    errors.name = "Product name is required";
-  } else if (normalizedName.length < 2) {
-    errors.name = "Product name must be at least 2 characters";
-  }
-
-  if (!form.categoryId) {
-    errors.categoryId = "Category is required";
-  } else if (!Number.isInteger(parsedCategoryId) || parsedCategoryId <= 0) {
-    errors.categoryId = "Please select a valid category";
-  }
-
-  if (form.price === "") {
-    errors.price = "Price is required";
-  } else if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
-    errors.price = "Price must be a non-negative number";
-  }
-
-  if (form.stockQuantity === "") {
-    errors.stockQuantity = "Stock quantity is required";
-  } else if (!Number.isInteger(parsedStock) || parsedStock < 0) {
-    errors.stockQuantity = "Stock quantity must be a non-negative integer";
-  }
-
-  if (normalizedDescription.length > 500) {
-    errors.description = "Description must be at most 500 characters";
-  }
-
-  return errors;
-};
-
 function Products() {
-  const [form, setForm] = useState(initialForm);
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [formErrors, setFormErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState({ type: "", text: "" });
+
+  const formik = useFormik({
+    initialValues: initialForm,
+    validationSchema: productValidationSchema,
+    onSubmit: async (values, { resetForm }) => {
+      setSubmitMessage({ type: "", text: "" });
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/products/create`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: values.name.trim(),
+            description: values.description.trim() || null,
+            price: Number(values.price),
+            stock_quantity: Number.parseInt(values.stockQuantity, 10),
+            category_id: Number.parseInt(values.categoryId, 10),
+          }),
+        });
+
+        const payload = await response.json();
+
+        if (!response.ok) {
+          const message = payload?.error || payload?.message || "Failed to create product";
+          throw new Error(message);
+        }
+
+        setSubmitMessage({ type: "success", text: "Product created successfully" });
+        resetForm();
+      } catch (error) {
+        setSubmitMessage({
+          type: "error",
+          text: error.message || "Failed to create product",
+        });
+      }
+    },
+  });
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -86,56 +85,9 @@ function Products() {
     loadCategories();
   }, []);
 
-  const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    setFormErrors((prev) => ({ ...prev, [field]: "" }));
+  const handleFieldChange = (event) => {
+    formik.handleChange(event);
     setSubmitMessage({ type: "", text: "" });
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setSubmitMessage({ type: "", text: "" });
-
-    const errors = validateProductForm(form);
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/products/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: form.name.trim(),
-          description: form.description.trim() || null,
-          price: Number(form.price),
-          stock_quantity: Number.parseInt(form.stockQuantity, 10),
-          category_id: Number.parseInt(form.categoryId, 10),
-        }),
-      });
-
-      const payload = await response.json();
-
-      if (!response.ok) {
-        const message = payload?.error || payload?.message || "Failed to create product";
-        throw new Error(message);
-      }
-
-      setSubmitMessage({ type: "success", text: "Product created successfully" });
-      setForm(initialForm);
-      setFormErrors({});
-    } catch (error) {
-      setSubmitMessage({
-        type: "error",
-        text: error.message || "Failed to create product",
-      });
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   const inputClass = (hasError) =>
@@ -151,25 +103,31 @@ function Products() {
       </div>
 
       <Card title="Add Product" subtitle="Create a new product and link it with category from database.">
-        <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit} noValidate>
+        <form className="grid gap-4 md:grid-cols-2" onSubmit={formik.handleSubmit} noValidate>
           <div>
             <label className="mb-1 block text-sm font-semibold text-slate-700">Product Name</label>
             <input
+              name="name"
               type="text"
               placeholder="Premium Cotton T-Shirt"
-              className={inputClass(Boolean(formErrors.name))}
-              value={form.name}
-              onChange={(e) => handleChange("name", e.target.value)}
+              className={inputClass(Boolean(formik.touched.name && formik.errors.name))}
+              value={formik.values.name}
+              onChange={handleFieldChange}
+              onBlur={formik.handleBlur}
             />
-            {formErrors.name ? <p className="mt-1 text-xs text-red-600">{formErrors.name}</p> : null}
+            {formik.touched.name && formik.errors.name ? (
+              <p className="mt-1 text-xs text-red-600">{formik.errors.name}</p>
+            ) : null}
           </div>
 
           <div>
             <label className="mb-1 block text-sm font-semibold text-slate-700">Category</label>
             <select
-              className={inputClass(Boolean(formErrors.categoryId))}
-              value={form.categoryId}
-              onChange={(e) => handleChange("categoryId", e.target.value)}
+              name="categoryId"
+              className={inputClass(Boolean(formik.touched.categoryId && formik.errors.categoryId))}
+              value={formik.values.categoryId}
+              onChange={handleFieldChange}
+              onBlur={formik.handleBlur}
               disabled={categoriesLoading}
             >
               <option value="">
@@ -181,47 +139,61 @@ function Products() {
                 </option>
               ))}
             </select>
-            {formErrors.categoryId ? <p className="mt-1 text-xs text-red-600">{formErrors.categoryId}</p> : null}
+            {formik.touched.categoryId && formik.errors.categoryId ? (
+              <p className="mt-1 text-xs text-red-600">{formik.errors.categoryId}</p>
+            ) : null}
           </div>
 
           <div>
             <label className="mb-1 block text-sm font-semibold text-slate-700">Price</label>
             <input
+              name="price"
               type="number"
               step="0.01"
               min="0"
               placeholder="49.00"
-              className={inputClass(Boolean(formErrors.price))}
-              value={form.price}
-              onChange={(e) => handleChange("price", e.target.value)}
+              className={inputClass(Boolean(formik.touched.price && formik.errors.price))}
+              value={formik.values.price}
+              onChange={handleFieldChange}
+              onBlur={formik.handleBlur}
             />
-            {formErrors.price ? <p className="mt-1 text-xs text-red-600">{formErrors.price}</p> : null}
+            {formik.touched.price && formik.errors.price ? (
+              <p className="mt-1 text-xs text-red-600">{formik.errors.price}</p>
+            ) : null}
           </div>
 
           <div>
             <label className="mb-1 block text-sm font-semibold text-slate-700">Stock Quantity</label>
             <input
+              name="stockQuantity"
               type="number"
               min="0"
               step="1"
               placeholder="120"
-              className={inputClass(Boolean(formErrors.stockQuantity))}
-              value={form.stockQuantity}
-              onChange={(e) => handleChange("stockQuantity", e.target.value)}
+              className={inputClass(Boolean(formik.touched.stockQuantity && formik.errors.stockQuantity))}
+              value={formik.values.stockQuantity}
+              onChange={handleFieldChange}
+              onBlur={formik.handleBlur}
             />
-            {formErrors.stockQuantity ? <p className="mt-1 text-xs text-red-600">{formErrors.stockQuantity}</p> : null}
+            {formik.touched.stockQuantity && formik.errors.stockQuantity ? (
+              <p className="mt-1 text-xs text-red-600">{formik.errors.stockQuantity}</p>
+            ) : null}
           </div>
 
           <div className="md:col-span-2">
             <label className="mb-1 block text-sm font-semibold text-slate-700">Description</label>
             <textarea
+              name="description"
               rows="4"
               placeholder="Write a short product description..."
-              className={inputClass(Boolean(formErrors.description))}
-              value={form.description}
-              onChange={(e) => handleChange("description", e.target.value)}
+              className={inputClass(Boolean(formik.touched.description && formik.errors.description))}
+              value={formik.values.description}
+              onChange={handleFieldChange}
+              onBlur={formik.handleBlur}
             />
-            {formErrors.description ? <p className="mt-1 text-xs text-red-600">{formErrors.description}</p> : null}
+            {formik.touched.description && formik.errors.description ? (
+              <p className="mt-1 text-xs text-red-600">{formik.errors.description}</p>
+            ) : null}
           </div>
 
           {submitMessage.text ? (
@@ -237,8 +209,8 @@ function Products() {
           ) : null}
 
           <div className="md:col-span-2">
-            <Button type="submit" disabled={submitting || categoriesLoading}>
-              {submitting ? "Saving..." : "Save Product"}
+            <Button type="submit" disabled={formik.isSubmitting || categoriesLoading}>
+              {formik.isSubmitting ? "Saving..." : "Save Product"}
             </Button>
           </div>
         </form>

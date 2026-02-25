@@ -5,8 +5,8 @@ Full-stack ecommerce dashboard with a shared backend and two frontend apps:
 - `retailer-frontend` for retailer product workflows
 
 ## Tech Stack
-- Frontends: React 19, Vite, Tailwind CSS, React Router
-- Backend: Node.js, Express, MySQL2, JWT, bcrypt
+- Frontends: React 19, Vite, Tailwind CSS, React Router, Formik, Yup
+- Backend: Node.js, Express, MySQL2, JWT, bcrypt, Joi
 - Database: MySQL 8
 
 ## Current Features
@@ -14,20 +14,22 @@ Full-stack ecommerce dashboard with a shared backend and two frontend apps:
 - Protected admin routes (`/login` is public, dashboard routes are protected)
 - Admin users management
 : create user, list users, edit user, and toggle active/inactive status
-- Client-side validation in admin create/edit/login forms
+- Client-side validation with Formik + Yup in admin create/edit/login forms
+- Client-side validation with Formik + Yup in retailer product form
 - Toast notifications for admin auth and feedback
 - Categories management
 : create, list, update, delete
 - Subcategories management
 : create, list, update, delete
 - Retailer product creation form connected to backend API
-- Backend product create endpoint with input normalization/validation
+- Backend Joi validation middleware for admin and retailer request payloads
 
 ## Project Structure
 ```text
 ecommerce/
   Backend/
     admin/
+    validation/
     retailer/
     db/
     middleware/
@@ -37,10 +39,12 @@ ecommerce/
       components/
       pages/
       lib/
+      validation/
   retailer-frontend/
     src/
       components/
       pages/
+      validation/
 ```
 
 ## Backend Setup
@@ -180,6 +184,17 @@ ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
 - Admin API helper: `admin-frontend/src/lib/api.js`
 - Uses `VITE_API_BASE_URL` if set, otherwise `/api`
 - Admin app automatically attaches JWT from `localStorage`
+
+## Validation
+- Frontend validation schemas:
+: `admin-frontend/src/validation/schemas.js`
+: `retailer-frontend/src/validation/schemas.js`
+- Backend Joi schemas:
+: `Backend/validation/schemas.js`
+- Backend validation middleware:
+: `Backend/middleware/validate.js`
+- Validation error response format:
+: `{ "message": "Validation failed", "errors": ["..."] }`
 
 ## CORS
 Backend allows:

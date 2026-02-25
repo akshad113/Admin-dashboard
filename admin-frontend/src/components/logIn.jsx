@@ -1,33 +1,13 @@
 import { useEffect, useState } from "react";
+import { useFormik } from "formik";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { apiRequest } from "../lib/api";
-
-const validateLoginForm = ({ email, password }) => {
-  const normalizedEmail = String(email || "").trim();
-  const normalizedPassword = String(password || "");
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-  if (!normalizedEmail || !normalizedPassword) {
-    return "Email and password are required";
-  }
-
-  if (!emailRegex.test(normalizedEmail)) {
-    return "Please enter a valid email";
-  }
-
-  if (normalizedPassword.length < 6) {
-    return "Password must be at least 6 characters";
-  }
-
-  return null;
-};
+import { loginValidationSchema } from "../validation/schemas";
 
 const LogIn = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -36,68 +16,88 @@ const LogIn = () => {
     }
   }, [location.state]);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const formik = useFormik({
+    initialValues: {
+      email: "",
+      password: "",
+    },
+    validationSchema: loginValidationSchema,
+    onSubmit: async (values) => {
+      setLoading(true);
 
-    const validationError = validateLoginForm({ email, password });
-    if (validationError) {
-      toast.error(validationError);
-      return;
-    }
+      try {
+        const data = await apiRequest("/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: values.email.trim(),
+            password: values.password,
+          }),
+        });
 
-    setLoading(true);
-
-    try {
-      const data = await apiRequest("/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email: email.trim(), password }),
-      });
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user || {}));
-      toast.success("Login successful");
-      navigate("/");
-    } catch (err) {
-      toast.error(err.message || "Login failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user || {}));
+        toast.success("Login successful");
+        navigate("/");
+      } catch (err) {
+        toast.error(err.message || "Login failed");
+      } finally {
+        setLoading(false);
+      }
+    },
+  });
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-200">
       <form
-        onSubmit={handleLogin}
+        onSubmit={formik.handleSubmit}
         noValidate
         className="bg-white p-8 rounded shadow-md w-96"
       >
         <h2 className="text-2xl font-bold mb-6 text-center">Admin Login</h2>
 
         <input
+          name="email"
           type="text"
           inputMode="email"
           placeholder="Email"
-          className="w-full mb-4 p-2 border rounded"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          className={`w-full p-2 border rounded ${
+            formik.touched.email && formik.errors.email ? "border-red-400" : "mb-4"
+          }`}
+          value={formik.values.email}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
           autoComplete="email"
         />
+        {formik.touched.email && formik.errors.email ? (
+          <p className="mb-4 text-xs text-red-600">{formik.errors.email}</p>
+        ) : (
+          <div className="mb-4" />
+        )}
 
         <input
+          name="password"
           type="password"
           placeholder="Password"
-          className="w-full mb-4 p-2 border rounded"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          className={`w-full p-2 border rounded ${
+            formik.touched.password && formik.errors.password ? "border-red-400" : "mb-4"
+          }`}
+          value={formik.values.password}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
           autoComplete="current-password"
         />
+        {formik.touched.password && formik.errors.password ? (
+          <p className="mb-4 text-xs text-red-600">{formik.errors.password}</p>
+        ) : (
+          <div className="mb-4" />
+        )}
 
         <button
           className="w-full bg-blue-600 text-white p-2 rounded disabled:opacity-60"
-          disabled={loading}
+          disabled={loading || formik.isSubmitting}
         >
           {loading ? "Signing in..." : "Login"}
         </button>
