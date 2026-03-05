@@ -3,20 +3,23 @@ import { useFormik } from "formik";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import { productValidationSchema } from "../validation/schemas";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+import { apiRequest } from "../lib/api";
 
 const initialForm = {
   name: "",
   categoryId: "",
+  subcategoryId: "",
   price: "",
   stockQuantity: "0",
   description: "",
+  imageUrl: "",
+  status: "active",
 };
 
 function Products() {
   const [categories, setCategories] = useState([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [subcategories, setSubcategories] = useState([]);
+  const [optionsLoading, setOptionsLoading] = useState(true);
   const [submitMessage, setSubmitMessage] = useState({ type: "", text: "" });
 
   const formik = useFormik({
@@ -26,7 +29,7 @@ function Products() {
       setSubmitMessage({ type: "", text: "" });
 
       try {
-        const response = await fetch(`${API_BASE_URL}/products/create`, {
+        await apiRequest("/products/create", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -37,15 +40,13 @@ function Products() {
             price: Number(values.price),
             stock_quantity: Number.parseInt(values.stockQuantity, 10),
             category_id: Number.parseInt(values.categoryId, 10),
+            subcategory_id: values.subcategoryId
+              ? Number.parseInt(values.subcategoryId, 10)
+              : null,
+            image_url: values.imageUrl.trim() || null,
+            status: values.status,
           }),
         });
-
-        const payload = await response.json();
-
-        if (!response.ok) {
-          const message = payload?.error || payload?.message || "Failed to create product";
-          throw new Error(message);
-        }
 
         setSubmitMessage({ type: "success", text: "Product created successfully" });
         resetForm();
@@ -59,36 +60,61 @@ function Products() {
   });
 
   useEffect(() => {
-    const loadCategories = async () => {
-      setCategoriesLoading(true);
+    const loadOptions = async () => {
+      setOptionsLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/categories`);
-        const payload = await response.json();
+        const [categoriesPayload, subcategoriesPayload] = await Promise.all([
+          apiRequest("/categories"),
+          apiRequest("/subcategories"),
+        ]);
 
-        if (!response.ok) {
-          const message = payload?.error || payload?.message || "Failed to load categories";
-          throw new Error(message);
-        }
-
-        setCategories(Array.isArray(payload) ? payload : []);
+        setCategories(Array.isArray(categoriesPayload) ? categoriesPayload : []);
+        setSubcategories(Array.isArray(subcategoriesPayload) ? subcategoriesPayload : []);
       } catch (error) {
         setSubmitMessage({
           type: "error",
-          text: error.message || "Failed to load categories",
+          text: error.message || "Failed to load product form options",
         });
         setCategories([]);
+        setSubcategories([]);
       } finally {
-        setCategoriesLoading(false);
+        setOptionsLoading(false);
       }
     };
 
-    loadCategories();
+    loadOptions();
   }, []);
 
   const handleFieldChange = (event) => {
-    formik.handleChange(event);
+    const { name, value } = event.target;
+
+    if (name === "categoryId") {
+      const nextCategoryId = value;
+      formik.setFieldValue("categoryId", nextCategoryId);
+
+      if (formik.values.subcategoryId) {
+        const stillValid = subcategories.some(
+          (sub) =>
+            Number(sub.subcategory_id) === Number(formik.values.subcategoryId) &&
+            Number(sub.category_id) === Number(nextCategoryId)
+        );
+
+        if (!stillValid) {
+          formik.setFieldValue("subcategoryId", "");
+        }
+      }
+    } else {
+      formik.handleChange(event);
+    }
+
     setSubmitMessage({ type: "", text: "" });
   };
+
+  const filteredSubcategories = formik.values.categoryId
+    ? subcategories.filter(
+        (sub) => Number(sub.category_id) === Number(formik.values.categoryId)
+      )
+    : [];
 
   const inputClass = (hasError) =>
     `w-full rounded-lg px-3 py-2.5 text-sm ${
@@ -128,10 +154,10 @@ function Products() {
               value={formik.values.categoryId}
               onChange={handleFieldChange}
               onBlur={formik.handleBlur}
-              disabled={categoriesLoading}
+              disabled={optionsLoading}
             >
               <option value="">
-                {categoriesLoading ? "Loading categories..." : "Select category"}
+                {optionsLoading ? "Loading categories..." : "Select category"}
               </option>
               {categories.map((category) => (
                 <option key={category.category_id} value={category.category_id}>
@@ -141,6 +167,37 @@ function Products() {
             </select>
             {formik.touched.categoryId && formik.errors.categoryId ? (
               <p className="mt-1 text-xs text-red-600">{formik.errors.categoryId}</p>
+            ) : null}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-slate-700">Subcategory</label>
+            <select
+              name="subcategoryId"
+              className={inputClass(Boolean(formik.touched.subcategoryId && formik.errors.subcategoryId))}
+              value={formik.values.subcategoryId}
+              onChange={handleFieldChange}
+              onBlur={formik.handleBlur}
+              disabled={optionsLoading || !formik.values.categoryId}
+            >
+              <option value="">
+                {!formik.values.categoryId
+                  ? "Select category first"
+                  : optionsLoading
+                  ? "Loading subcategories..."
+                  : "Select subcategory (optional)"}
+              </option>
+              {filteredSubcategories.map((subcategory) => (
+                <option
+                  key={subcategory.subcategory_id}
+                  value={subcategory.subcategory_id}
+                >
+                  {subcategory.name}
+                </option>
+              ))}
+            </select>
+            {formik.touched.subcategoryId && formik.errors.subcategoryId ? (
+              <p className="mt-1 text-xs text-red-600">{formik.errors.subcategoryId}</p>
             ) : null}
           </div>
 
@@ -180,6 +237,39 @@ function Products() {
             ) : null}
           </div>
 
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-slate-700">Status</label>
+            <select
+              name="status"
+              className={inputClass(Boolean(formik.touched.status && formik.errors.status))}
+              value={formik.values.status}
+              onChange={handleFieldChange}
+              onBlur={formik.handleBlur}
+            >
+              <option value="active">active</option>
+              <option value="inactive">inactive</option>
+            </select>
+            {formik.touched.status && formik.errors.status ? (
+              <p className="mt-1 text-xs text-red-600">{formik.errors.status}</p>
+            ) : null}
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-sm font-semibold text-slate-700">Image URL</label>
+            <input
+              name="imageUrl"
+              type="text"
+              placeholder="https://example.com/product.jpg"
+              className={inputClass(Boolean(formik.touched.imageUrl && formik.errors.imageUrl))}
+              value={formik.values.imageUrl}
+              onChange={handleFieldChange}
+              onBlur={formik.handleBlur}
+            />
+            {formik.touched.imageUrl && formik.errors.imageUrl ? (
+              <p className="mt-1 text-xs text-red-600">{formik.errors.imageUrl}</p>
+            ) : null}
+          </div>
+
           <div className="md:col-span-2">
             <label className="mb-1 block text-sm font-semibold text-slate-700">Description</label>
             <textarea
@@ -209,7 +299,7 @@ function Products() {
           ) : null}
 
           <div className="md:col-span-2">
-            <Button type="submit" disabled={formik.isSubmitting || categoriesLoading}>
+            <Button type="submit" disabled={formik.isSubmitting || optionsLoading}>
               {formik.isSubmitting ? "Saving..." : "Save Product"}
             </Button>
           </div>

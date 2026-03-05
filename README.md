@@ -1,38 +1,42 @@
-# Ecommerce Admin + Retailer Dashboard (React + Node + MySQL)
+# Ecommerce Admin + Retailer Dashboard
 
-Full-stack ecommerce dashboard with a shared backend and two frontend apps:
-- `admin-frontend` for admin users/roles/categories/subcategories management
-- `retailer-frontend` for retailer product workflows
+Full-stack ecommerce dashboard with:
+- `admin-frontend` for admin operations
+- `retailer-frontend` for product creation workflows
+- `Backend` shared API and MySQL integration
 
 ## Tech Stack
-- Frontends: React 19, Vite, Tailwind CSS, React Router, Formik, Yup
-- Backend: Node.js, Express, MySQL2, JWT, bcrypt, Joi
+- Frontend: React 19, Vite, Tailwind CSS, React Router, Formik, Yup
+- Backend: Node.js, Express, MySQL2, JWT, Joi
 - Database: MySQL 8
 
-## Current Features
-- Admin login with JWT token
-- Protected admin routes (`/login` is public, dashboard routes are protected)
-- Admin users management
-: create user, list users, edit user, and toggle active/inactive status
-- Client-side validation with Formik + Yup in admin create/edit/login forms
-- Client-side validation with Formik + Yup in retailer product form
-- Toast notifications for admin auth and feedback
-- Categories management
-: create, list, update, delete
-- Subcategories management
-: create, list, update, delete
-- Retailer product creation form connected to backend API
-- Backend Joi validation middleware for admin and retailer request payloads
+## Features
+- Admin login with JWT
+- Admin user management (create/list/update/status toggle)
+- Categories CRUD
+- Subcategories CRUD with category mapping
+- Retailer product creation with:
+  - category + subcategory selection
+  - stock, price, status (`active`/`inactive`)
+  - optional image URL and description
+- Product listing endpoint with joined category/subcategory/user details
+- Admin products page consuming `GET /api/products`
+- Centralized frontend API helpers:
+  - `admin-frontend/src/lib/api.js`
+  - `retailer-frontend/src/lib/api.js`
+- Request validation:
+  - frontend with Yup
+  - backend with Joi (`Backend/validation/schemas.js`)
 
 ## Project Structure
 ```text
 ecommerce/
   Backend/
     admin/
-    validation/
     retailer/
     db/
     middleware/
+    validation/
     server.js
   admin-frontend/
     src/
@@ -44,62 +48,48 @@ ecommerce/
     src/
       components/
       pages/
+      lib/
       validation/
 ```
 
-## Backend Setup
-1. Install dependencies
+## Setup
+
+### 1) Backend
 ```bash
 cd Backend
 npm install
+npm start
 ```
 
-2. Create `Backend/.env`
+Create `Backend/.env`:
 ```env
 JWT_SECRET=your_super_secret_key_123
 JWT_EXPIRES_IN=1d
 PORT=5000
 ```
 
-3. Configure DB connection in `Backend/db/userDB.js`
-- host: `localhost`
-- user: `root`
-- password: `1717`
-- database: `admin_dashboard_db`
-
-4. Start backend
-```bash
-npm start
-```
+Update DB connection in `Backend/db/userDB.js` as needed.
 
 Backend runs on `http://localhost:5000`.
 
-## Admin Frontend Setup
-1. Install dependencies
+### 2) Admin Frontend
 ```bash
 cd admin-frontend
 npm install
-```
-
-2. Run app
-```bash
 npm run dev
 ```
 
-## Retailer Frontend Setup
-1. Install dependencies
+### 3) Retailer Frontend
 ```bash
 cd retailer-frontend
 npm install
-```
-
-2. Run app
-```bash
 npm run dev
 ```
 
+Both frontends are configured with Vite proxy for `/api` -> `http://localhost:5000`.
+
 ## Database Setup (MySQL)
-Run in MySQL:
+Run the following in MySQL:
 
 ```sql
 CREATE DATABASE IF NOT EXISTS admin_dashboard_db;
@@ -146,63 +136,73 @@ CREATE TABLE IF NOT EXISTS subcategories (
   CONSTRAINT fk_subcategories_category FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS products (
+  product_id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  description TEXT NULL,
+  price DECIMAL(10,2) NOT NULL,
+  stock_quantity INT NOT NULL DEFAULT 0,
+  category_id INT NULL,
+  subcategory_id INT NULL,
+  user_id INT NULL,
+  image_url VARCHAR(255) NULL,
+  status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_products_category FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT fk_products_subcategory FOREIGN KEY (subcategory_id) REFERENCES subcategories(subcategory_id) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT fk_products_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL ON UPDATE CASCADE
+);
+
 INSERT INTO roles (role_name)
 VALUES ('Admin'), ('Manager'), ('User')
 ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
 ```
 
-## Seeded Admin Login
-- Email: `yamraj@yamlook.com`
-- Password: `1234567`
-
 ## API Endpoints
 
-### Public
-- `POST /api/login` - login and get JWT
-- `POST /api/createuser` - create user
-- `POST /api/products/create` - create product
-
-### Protected (Bearer token required)
-- `GET /api/users`
-- `GET /api/roles`
-- `PUT /api/users/:id`
-- `PUT /api/users/:id/status`
+### Auth and Users
+- `POST /api/login`
+- `POST /api/createuser`
+- `GET /api/users` (JWT required)
+- `GET /api/roles` (JWT required)
+- `PUT /api/users/:id` (JWT required)
+- `PUT /api/users/:id/status` (JWT required)
 
 ### Categories
-- `GET /api/categories/`
+- `GET /api/categories`
 - `POST /api/categories/create`
 - `PUT /api/categories/:id`
 - `DELETE /api/categories/:id`
 
 ### Subcategories
-- `GET /api/subcategories/`
+- `GET /api/subcategories`
 - `POST /api/subcategories/create`
 - `PUT /api/subcategories/:id`
 - `DELETE /api/subcategories/:id`
 
-## Frontend API Behavior
-- Admin API helper: `admin-frontend/src/lib/api.js`
-- Uses `VITE_API_BASE_URL` if set, otherwise `/api`
-- Admin app automatically attaches JWT from `localStorage`
+### Products
+- `GET /api/products`
+- `POST /api/products/create`
 
 ## Validation
-- Frontend validation schemas:
-: `admin-frontend/src/validation/schemas.js`
-: `retailer-frontend/src/validation/schemas.js`
-- Backend Joi schemas:
-: `Backend/validation/schemas.js`
-- Backend validation middleware:
-: `Backend/middleware/validate.js`
-- Validation error response format:
-: `{ "message": "Validation failed", "errors": ["..."] }`
+- Frontend schemas:
+  - `admin-frontend/src/validation/schemas.js`
+  - `retailer-frontend/src/validation/schemas.js`
+- Backend schemas:
+  - `Backend/validation/schemas.js`
+- Middleware:
+  - `Backend/middleware/validate.js`
+- Error response format:
+  - `{ "message": "Validation failed", "errors": ["..."] }`
 
 ## CORS
-Backend allows:
+Allowed origins include:
 - `http://localhost:3000`
 - `http://localhost:5173`
-- Any localhost port matching `http://localhost:<port>`
+- any `http://localhost:<port>`
 
 ## Troubleshooting
-- If you get `404` on a new route, restart backend from `Backend/`.
-- If you get `Failed to fetch`, confirm backend is running and frontend is using the correct base URL/proxy.
-- If login works but protected APIs fail, verify token exists in localStorage and is sent as `Authorization: Bearer <token>`.
+- `404` on new backend routes: restart backend from `Backend/`.
+- `Failed to fetch`: verify backend is running and frontend proxy/base URL is correct.
+- JWT issues on protected routes: check `Authorization: Bearer <token>`.

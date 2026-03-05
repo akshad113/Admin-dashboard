@@ -14,12 +14,13 @@ const idParamSchema = Joi.object({
 });
 
 const createProductSchema = Joi.object({
-  name: Joi.string().trim().min(2).max(255).required().messages({
+  name: Joi.string().trim().min(2).max(100).required().messages({
     "string.empty": "Name is required",
     "string.min": "Name must be at least 2 characters",
+    "string.max": "Name must be at most 100 characters",
     "any.required": "Name is required",
   }),
-  description: Joi.string().trim().max(500).allow(null).empty("").default(null),
+  description: Joi.string().trim().max(65535).allow(null).empty("").default(null),
   price: Joi.number().min(0).required().messages({
     "number.base": "Price must be a non-negative number",
     "number.min": "Price must be a non-negative number",
@@ -40,7 +41,7 @@ const createProductSchema = Joi.object({
     "number.integer": "Invalid subcategory id",
     "number.positive": "Invalid subcategory id",
   }),
-  image_url: Joi.string().trim().max(2048).allow(null).empty("").default(null),
+  image_url: Joi.string().trim().max(255).allow(null).empty("").default(null),
   status: activeInactiveSchema.default("active"),
 });
 
