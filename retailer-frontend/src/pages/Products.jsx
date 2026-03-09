@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useFormik } from "formik";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
+import Table from "../components/ui/Table";
 import { productValidationSchema } from "../validation/schemas";
 import { apiRequest } from "../lib/api";
 
@@ -19,8 +20,26 @@ const initialForm = {
 function Products() {
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
+  const [myProducts, setMyProducts] = useState([]);
   const [optionsLoading, setOptionsLoading] = useState(true);
+  const [myProductsLoading, setMyProductsLoading] = useState(true);
   const [submitMessage, setSubmitMessage] = useState({ type: "", text: "" });
+  const [myProductsError, setMyProductsError] = useState("");
+
+  const loadMyProducts = useCallback(async () => {
+    setMyProductsLoading(true);
+    setMyProductsError("");
+
+    try {
+      const payload = await apiRequest("/products/mine");
+      setMyProducts(Array.isArray(payload) ? payload : []);
+    } catch (error) {
+      setMyProducts([]);
+      setMyProductsError(error.message || "Failed to load your products");
+    } finally {
+      setMyProductsLoading(false);
+    }
+  }, []);
 
   const formik = useFormik({
     initialValues: initialForm,
@@ -50,6 +69,7 @@ function Products() {
 
         setSubmitMessage({ type: "success", text: "Product created successfully" });
         resetForm();
+        await loadMyProducts();
       } catch (error) {
         setSubmitMessage({
           type: "error",
@@ -60,7 +80,7 @@ function Products() {
   });
 
   useEffect(() => {
-    const loadOptions = async () => {
+    const loadInitialData = async () => {
       setOptionsLoading(true);
       try {
         const [categoriesPayload, subcategoriesPayload] = await Promise.all([
@@ -82,8 +102,9 @@ function Products() {
       }
     };
 
-    loadOptions();
-  }, []);
+    loadInitialData();
+    loadMyProducts();
+  }, [loadMyProducts]);
 
   const handleFieldChange = (event) => {
     const { name, value } = event.target;
@@ -120,6 +141,14 @@ function Products() {
     `w-full rounded-lg px-3 py-2.5 text-sm ${
       hasError ? "border border-red-400" : "border border-slate-200"
     }`;
+
+  const formatPrice = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      return "NA";
+    }
+    return `Rs ${Math.round(parsed)}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -305,6 +334,79 @@ function Products() {
           </div>
         </form>
       </Card>
+
+      <Table
+        title="My Uploaded Products"
+        subtitle="Products you have added from this retailer panel"
+      >
+        <table className="min-w-full divide-y divide-slate-200">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Product
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Category
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Price
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Stock
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Status
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {myProductsLoading ? (
+              <tr>
+                <td className="px-4 py-4 text-sm text-slate-500" colSpan={5}>
+                  Loading your products...
+                </td>
+              </tr>
+            ) : myProductsError ? (
+              <tr>
+                <td className="px-4 py-4 text-sm text-red-600" colSpan={5}>
+                  {myProductsError}
+                </td>
+              </tr>
+            ) : myProducts.length === 0 ? (
+              <tr>
+                <td className="px-4 py-4 text-sm text-slate-500" colSpan={5}>
+                  No products uploaded yet.
+                </td>
+              </tr>
+            ) : (
+              myProducts.map((product) => (
+                <tr key={product.product_id}>
+                  <td className="px-4 py-3 text-sm text-slate-700">
+                    <p className="font-semibold text-slate-900">{product.name}</p>
+                    <p className="text-xs text-slate-500">{product.subcategory_name || "General"}</p>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-slate-700">{product.category_name || "General"}</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-slate-900">
+                    {formatPrice(product.price)}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-slate-700">{product.stock_quantity}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        String(product.status).toLowerCase() === "active"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {product.status}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </Table>
     </div>
   );
 }

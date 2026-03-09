@@ -22,4 +22,24 @@ const verifyToken = (req, res, next) => {
   }
 };
 
+const authorizeRoles = (...allowedRoles) => (req, res, next) => {
+  const userRoles = Array.isArray(req.user?.roles) ? req.user.roles : [];
+  const normalizedUserRoles = userRoles.map((role) => String(role).toLowerCase());
+  const normalizedAllowedRoles = allowedRoles.map((role) => String(role).toLowerCase());
+
+  const hasPermission = normalizedAllowedRoles.some((role) =>
+    normalizedUserRoles.includes(role)
+  );
+
+  if (!hasPermission) {
+    return res.status(403).json({
+      message: "Forbidden"
+    });
+  }
+
+  return next();
+};
+
 module.exports = verifyToken;
+module.exports.verifyToken = verifyToken;
+module.exports.authorizeRoles = authorizeRoles;

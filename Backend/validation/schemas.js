@@ -41,7 +41,7 @@ const createProductSchema = Joi.object({
     "number.integer": "Invalid subcategory id",
     "number.positive": "Invalid subcategory id",
   }),
-  image_url: Joi.string().trim().max(255).allow(null).empty("").default(null),
+  image_url: Joi.string().trim().max(10000).allow(null).empty("").default(null),
   status: activeInactiveSchema.default("active"),
 });
 
@@ -82,6 +82,27 @@ const loginSchema = Joi.object({
   }),
 });
 
+const customerSignupSchema = Joi.object({
+  name: Joi.string().trim().min(2).max(100).required().messages({
+    "string.empty": "Name is required",
+    "string.min": "Name must be at least 2 characters",
+    "string.max": "Name must be at most 100 characters",
+    "any.required": "Name is required",
+  }),
+  email: emailSchema.required().messages({
+    "string.email": "Invalid email format",
+    "string.empty": "Email is required",
+    "any.required": "Email is required",
+  }),
+  password: Joi.string().min(6).required().messages({
+    "string.empty": "Password is required",
+    "string.min": "Password must be at least 6 characters",
+    "any.required": "Password is required",
+  }),
+});
+
+const customerLoginSchema = loginSchema;
+
 const updateUserSchema = Joi.object({
   name: Joi.string().trim().min(2).max(100).required().messages({
     "string.empty": "Name is required",
@@ -105,10 +126,10 @@ const updateUserSchema = Joi.object({
 });
 
 const categorySchema = Joi.object({
-  name: Joi.string().trim().min(3).max(10).required().messages({
+  name: Joi.string().trim().min(3).max(50).required().messages({
     "string.empty": "Name is required",
     "string.min": "Name must be at least 3 characters",
-    "string.max": "Name must be at most 10 characters (current DB limit)",
+    "string.max": "Name must be at most 50 characters (current DB limit)",
     "any.required": "Name is required",
   }),
 });
@@ -133,6 +154,8 @@ module.exports = {
   createProductSchema,
   createUserSchema,
   loginSchema,
+  customerSignupSchema,
+  customerLoginSchema,
   updateUserSchema,
   categorySchema,
   subcategorySchema,

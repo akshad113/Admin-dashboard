@@ -33,7 +33,7 @@ export const productValidationSchema = Yup.object({
     .max(65535, "Description is too long"),
   imageUrl: Yup.string()
     .trim()
-    .max(255, "Image URL must be at most 255 characters")
+    .max(10000, "Image URL must be at most 10000 characters")
     .url("Please enter a valid URL")
     .nullable()
     .transform((value) => (value === "" ? null : value)),

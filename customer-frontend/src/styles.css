@@ -2,7 +2,7 @@
 
 :root {
   --ink: #0f1111;
-  --nav: #131921;
+  --nav: #426da5;
   --subnav: #232f3e;
   --accent: #febd69;
   --paper: #f3f3f3;
@@ -99,6 +99,23 @@ a {
   gap: 0.9rem;
   font-weight: 600;
   font-size: 0.9rem;
+  align-items: center;
+}
+
+.account-pill {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.logout-link {
+  border: 0;
+  background: transparent;
+  color: #ffd57a;
+  font: inherit;
+  cursor: pointer;
 }
 
 .amazon-subnav {
@@ -322,6 +339,72 @@ a {
 
 .add-cart-button:hover {
   background: #f7ca00;
+}
+
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.auth-card {
+  width: min(460px, 100%);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1.2rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.auth-card h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.auth-card p {
+  margin: 0 0 0.2rem;
+  color: #5a677b;
+}
+
+.auth-card label {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.auth-card input {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.62rem 0.68rem;
+  font: inherit;
+}
+
+.auth-card button {
+  margin-top: 0.35rem;
+  border: 0;
+  border-radius: 999px;
+  background: #ffbd59;
+  color: #141414;
+  font-weight: 800;
+  padding: 0.62rem 0.95rem;
+  cursor: pointer;
+}
+
+.auth-card button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.auth-error {
+  color: #b72424;
+  font-size: 0.85rem;
+  margin: 0.1rem 0;
+}
+
+.auth-switch {
+  margin-top: 0.3rem;
+  font-size: 0.9rem;
 }
 
 @media (max-width: 1120px) {

@@ -125,10 +125,20 @@ const loginUser = async (req, res) => {
       });
     }
 
+    const roleRows = await query(
+      `SELECT r.role_name
+       FROM role_assign ra
+       INNER JOIN roles r ON r.role_id = ra.role_id
+       WHERE ra.user_id = ?`,
+      [user.user_id]
+    );
+    const roles = [...new Set(roleRows.map((row) => row.role_name).filter(Boolean))];
+
     const token = jwt.sign(
       {
         id: user.user_id,
         email: user.email,
+        roles,
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN }
@@ -141,6 +151,7 @@ const loginUser = async (req, res) => {
         id: user.user_id,
         name: user.name,
         email: user.email,
+        roles,
       },
     });
   } catch (error) {

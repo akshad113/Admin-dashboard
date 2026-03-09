@@ -16,8 +16,8 @@ const createCategorie = async (req,res) =>{
             return res.status(400).json({ error: 'Name must be at least 3 characters' });
         }
 
-        if (normalizedName.length > 10) {
-            return res.status(400).json({ error: 'Name must be at most 10 characters (current DB limit)' });
+        if (normalizedName.length > 50) {
+            return res.status(400).json({ error: 'Name must be at most 50 characters (current DB limit)' });
         }
 
         const duplicateSql = `
@@ -73,8 +73,8 @@ const updateCategorie = async (req, res) => {
             return res.status(400).json({ error: "Name must be at least 3 characters" });
         }
 
-        if (normalizedName.length > 10) {
-            return res.status(400).json({ error: "Name must be at most 10 characters (current DB limit)" });
+        if (normalizedName.length > 50) {
+            return res.status(400).json({ error: "Name must be at most 50 characters (current DB limit)" });
         }
 
         const duplicateSql = `

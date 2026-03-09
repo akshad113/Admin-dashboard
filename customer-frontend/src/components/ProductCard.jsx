@@ -1,6 +1,6 @@
 const formatPrice = (value) => {
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? `$${parsed.toFixed(2)}` : "NA";
+  return Number.isFinite(parsed) ? `Rs ${Math.round(parsed)}` : "NA";
 };
 
 export default function ProductCard({ product, onAddToCart }) {

@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS role_assign (
 
 CREATE TABLE IF NOT EXISTS categories (
   category_id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(10) NOT NULL UNIQUE,
+  name VARCHAR(50) NOT NULL UNIQUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS products (
   category_id INT NULL,
   subcategory_id INT NULL,
   user_id INT NULL,
-  image_url VARCHAR(255) NULL,
+  image_url VARCHAR(2048) NULL,
   status ENUM('active','inactive') NOT NULL DEFAULT 'active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -201,8 +201,10 @@ ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
 - `DELETE /api/subcategories/:id`
 
 ### Products
-- `GET /api/products`
-- `POST /api/products/create`
+- `GET /api/products` (JWT required, role: `Admin` or `Manager`)
+- `GET /api/products/mine` (JWT required, role: `Admin` or `Manager`)
+- `POST /api/products/create` (JWT required, role: `Admin` or `Manager`)
+  - Long `image_url` values are auto-shortened on backend using URL shortener providers.
 
 ### Customer Storefront
 - `GET /api/customer/home`
@@ -211,6 +213,11 @@ ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
 - `GET /api/customer/categories`
 - `GET /api/customer/products`
   - query params (optional): `search`, `category`, `limit`
+
+### Customer Auth
+- `POST /api/customer/auth/signup`
+- `POST /api/customer/auth/login`
+- `GET /api/customer/auth/me` (JWT required)
 
 ## Validation
 - Frontend schemas:

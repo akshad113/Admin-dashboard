@@ -3,6 +3,7 @@ import { useEffect, useMemo } from "react";
 import HeroSection from "../components/HeroSection.jsx";
 import ProductCard from "../components/ProductCard.jsx";
 import TopNav from "../components/TopNav.jsx";
+import { useAuthStore } from "../store/useAuthStore.js";
 import { useShopStore } from "../store/useShopStore.js";
 
 export default function HomePage() {
@@ -21,6 +22,9 @@ export default function HomePage() {
   const setSelectedCategory = useShopStore((state) => state.setSelectedCategory);
   const loadHomeData = useShopStore((state) => state.loadHomeData);
   const addToCart = useShopStore((state) => state.addToCart);
+
+  const customer = useAuthStore((state) => state.user);
+  const logoutCustomer = useAuthStore((state) => state.logoutCustomer);
 
   useEffect(() => {
     loadHomeData();
@@ -76,10 +80,12 @@ export default function HomePage() {
       <TopNav
         categories={categories}
         cartCount={cartCount}
+        customerName={customer?.name || ""}
         searchTerm={searchTerm}
         selectedCategory={selectedCategory}
         onSearchTermChange={setSearchTerm}
         onSelectedCategoryChange={setSelectedCategory}
+        onLogout={logoutCustomer}
       />
 
       <main className="home-main">

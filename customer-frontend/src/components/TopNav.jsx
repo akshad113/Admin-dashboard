@@ -1,10 +1,14 @@
+import { Link } from "react-router-dom";
+
 export default function TopNav({
   categories = [],
   cartCount = 0,
+  customerName = "",
   searchTerm = "",
   selectedCategory = "All",
   onSearchTermChange,
-  onSelectedCategoryChange
+  onSelectedCategoryChange,
+  onLogout
 }) {
   const categoryNames = [
     ...new Set(categories.map((category) => category.name).filter(Boolean))
@@ -53,7 +57,19 @@ export default function TopNav({
         </form>
 
         <div className="nav-links">
-          <a href="#">Account</a>
+          {customerName ? (
+            <>
+              <span className="account-pill">Hi, {customerName}</span>
+              <button type="button" className="logout-link" onClick={onLogout}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login">Login</Link>
+              <Link to="/signup">Sign Up</Link>
+            </>
+          )}
           <a href="#">Orders</a>
           <a href="#">Cart ({cartCount})</a>
         </div>
