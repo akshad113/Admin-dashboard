@@ -1,0 +1,266 @@
+@import url("https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;700;800&display=swap");
+
+:root {
+  --ink: #0f1111;
+  --nav: #131921;
+  --subnav: #232f3e;
+  --accent: #febd69;
+  --paper: #f3f3f3;
+  --white: #ffffff;
+  --line: #d5d9d9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: "Work Sans", sans-serif;
+  background: linear-gradient(180deg, #e4edf8 0%, #f2f4f8 30%, var(--paper) 100%);
+  color: var(--ink);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.amazon-nav {
+  background: var(--nav);
+  color: var(--white);
+  padding: 0.7rem 1rem;
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.amazon-logo {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.amazon-logo span {
+  color: var(--accent);
+}
+
+.location-chip {
+  line-height: 1.1;
+}
+
+.location-chip small {
+  opacity: 0.75;
+}
+
+.search-wrap {
+  display: grid;
+  grid-template-columns: 90px 1fr 90px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid transparent;
+}
+
+.search-wrap:focus-within {
+  border-color: var(--accent);
+}
+
+.search-wrap select,
+.search-wrap input,
+.search-wrap button {
+  border: 0;
+  padding: 0.65rem 0.7rem;
+  font: inherit;
+}
+
+.search-wrap select {
+  background: #eef0f3;
+}
+
+.search-wrap input {
+  width: 100%;
+}
+
+.search-wrap button {
+  background: var(--accent);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.nav-links {
+  display: flex;
+  gap: 0.9rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.amazon-subnav {
+  background: var(--subnav);
+  color: #f0f5ff;
+  padding: 0.6rem 1rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.92rem;
+}
+
+.home-main {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.hero-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.hero-banner {
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.92) 26%, rgba(255, 255, 255, 0.75) 52%, rgba(255, 255, 255, 0) 72%),
+    linear-gradient(120deg, #9ec7f7 0%, #c7e4ff 45%, #f7d2a8 100%);
+  min-height: 300px;
+  border-radius: 14px;
+  padding: 2rem;
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.hero-kicker {
+  margin: 0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.hero-banner h1 {
+  margin: 0.7rem 0;
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  max-width: 650px;
+  line-height: 1.05;
+}
+
+.hero-banner p {
+  margin: 0;
+  max-width: 560px;
+  color: #253142;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 0.8rem;
+  margin-top: 1.2rem;
+  align-items: center;
+}
+
+.hero-actions button {
+  border: 0;
+  background: #ffd814;
+  border-radius: 999px;
+  padding: 0.7rem 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.hero-actions a {
+  font-weight: 700;
+}
+
+.hero-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.deal-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.deal-card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.deal-card p {
+  margin: 0.35rem 0 0;
+  color: #4a5665;
+}
+
+.quick-categories {
+  margin-top: 1.2rem;
+}
+
+.quick-categories h2 {
+  margin: 0 0 0.8rem;
+  font-size: 1.35rem;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.category-box {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.75rem;
+}
+
+.category-art {
+  height: 95px;
+  border-radius: 10px;
+  background: linear-gradient(140deg, #d9e7ff, #ffe8d1);
+}
+
+.category-box h3 {
+  margin: 0.7rem 0 0;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 1120px) {
+  .amazon-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .search-wrap {
+    grid-template-columns: 82px 1fr 86px;
+  }
+
+  .nav-links {
+    justify-content: center;
+  }
+
+  .category-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .hero-banner {
+    padding: 1.35rem;
+    min-height: 270px;
+  }
+
+  .hero-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

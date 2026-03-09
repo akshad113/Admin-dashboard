@@ -1,8 +1,9 @@
-# Ecommerce Admin + Retailer Dashboard
+# Ecommerce Admin + Retailer + Customer Frontend
 
 Full-stack ecommerce dashboard with:
 - `admin-frontend` for admin operations
 - `retailer-frontend` for product creation workflows
+- `customer-frontend` for customer storefront experience
 - `Backend` shared API and MySQL integration
 
 ## Tech Stack
@@ -50,6 +51,11 @@ ecommerce/
       pages/
       lib/
       validation/
+  customer-frontend/
+    src/
+      components/
+      pages/
+      styles.css
 ```
 
 ## Setup
@@ -86,7 +92,20 @@ npm install
 npm run dev
 ```
 
-Both frontends are configured with Vite proxy for `/api` -> `http://localhost:5000`.
+### 4) Customer Frontend
+```bash
+cd customer-frontend
+npm install
+npm run dev
+```
+
+Customer storefront highlights:
+- Amazon-style top navigation and search bar
+- Modern hero banner with promotional deal cards
+- Reusable `components/` and `pages/` structure
+- Mobile responsive layout
+
+All frontends are configured with Vite proxy for `/api` -> `http://localhost:5000`.
 
 ## Database Setup (MySQL)
 Run the following in MySQL:
