@@ -1,4 +1,22 @@
-export default function TopNav() {
+export default function TopNav({
+  categories = [],
+  cartCount = 0,
+  searchTerm = "",
+  selectedCategory = "All",
+  onSearchTermChange,
+  onSelectedCategoryChange
+}) {
+  const categoryNames = [
+    ...new Set(categories.map((category) => category.name).filter(Boolean))
+  ];
+  const subnavItems = categoryNames.length
+    ? categoryNames.slice(0, 6)
+    : ["Today's Deals", "Mobiles", "Fashion", "Electronics", "Home & Kitchen"];
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+  };
+
   return (
     <header>
       <div className="amazon-nav">
@@ -11,30 +29,42 @@ export default function TopNav() {
           <strong>India</strong>
         </div>
 
-        <form className="search-wrap" role="search">
-          <select aria-label="Category">
-            <option>All</option>
-            <option>Fashion</option>
-            <option>Electronics</option>
-            <option>Home</option>
+        <form className="search-wrap" role="search" onSubmit={handleSubmit}>
+          <select
+            aria-label="Category"
+            value={selectedCategory}
+            onChange={(event) => onSelectedCategoryChange?.(event.target.value)}
+          >
+            <option value="All">All</option>
+            {categoryNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
           </select>
-          <input type="text" placeholder="Search Shoplane" aria-label="Search" />
+          <input
+            type="text"
+            placeholder="Search Shoplane"
+            aria-label="Search"
+            value={searchTerm}
+            onChange={(event) => onSearchTermChange?.(event.target.value)}
+          />
           <button type="submit">Search</button>
         </form>
 
         <div className="nav-links">
           <a href="#">Account</a>
           <a href="#">Orders</a>
-          <a href="#">Cart (0)</a>
+          <a href="#">Cart ({cartCount})</a>
         </div>
       </div>
 
       <div className="amazon-subnav">
-        <a href="#">Today's Deals</a>
-        <a href="#">Mobiles</a>
-        <a href="#">Fashion</a>
-        <a href="#">Electronics</a>
-        <a href="#">Home & Kitchen</a>
+        {subnavItems.map((item) => (
+          <a href="#" key={item}>
+            {item}
+          </a>
+        ))}
       </div>
     </header>
   );

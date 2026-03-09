@@ -204,6 +204,14 @@ ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
 - `GET /api/products`
 - `POST /api/products/create`
 
+### Customer Storefront
+- `GET /api/customer/home`
+  - query params (optional): `search`, `category`, `limit`
+  - response: `{ data: { categories: [...], products: [...] } }`
+- `GET /api/customer/categories`
+- `GET /api/customer/products`
+  - query params (optional): `search`, `category`, `limit`
+
 ## Validation
 - Frontend schemas:
   - `admin-frontend/src/validation/schemas.js`

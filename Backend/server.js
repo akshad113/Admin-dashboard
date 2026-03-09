@@ -7,6 +7,7 @@ const userRouter = require('./admin/routes/Users');
 const categoryRouter = require('./admin/routes/Categories');
 const subcategoryRouter = require('./admin/routes/Subcategories');
 const productRouter = require('./retailer/routes/Products');
+const customerRouter = require("./customer/routes/Home");
 const userDB = require('./db/userDB'); 
 
 const app = express();
@@ -44,6 +45,7 @@ app.use('/api', userRouter);
 app.use('/api/categories', categoryRouter);
 app.use('/api/subcategories', subcategoryRouter);
 app.use('/api/products', productRouter);
+app.use("/api/customer", customerRouter);
 
 /////////////////////////////////////////////////
 // TEST ROUTE
