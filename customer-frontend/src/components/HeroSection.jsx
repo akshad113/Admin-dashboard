@@ -1,7 +1,7 @@
 const spotlight = [
-  { title: "Smart Watches", text: "Starting at $49" },
+  { title: "Smart Watches", text: "Starting at Rs 200" },
   { title: "Summer Fashion", text: "Up to 60% off" },
-  { title: "Home Refresh", text: "Top picks under $30" }
+  { title: "Home Refresh", text: "Top picks under RS 130" }
 ];
 
 export default function HeroSection() {
@@ -9,7 +9,7 @@ export default function HeroSection() {
     <section className="hero-shell">
       <div className="hero-banner">
         <p className="hero-kicker">New user offer: free shipping for 7 days</p>
-        <h1>Discover deals that feel like Amazon, built for your store.</h1>
+        <h1>Discover deals that feel Good, built for your store.</h1>
         <p>
           Shop daily essentials, latest gadgets, and trending styles with lightning-fast checkout.
         </p>

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { FaShoppingCart } from "react-icons/fa";
 
 export default function TopNav({
   categories = [],
@@ -70,8 +71,11 @@ export default function TopNav({
               <Link to="/signup">Sign Up</Link>
             </>
           )}
-          <a href="#">Orders</a>
-          <a href="#">Cart ({cartCount})</a>
+          <a href="#customer-orders">Orders</a>
+          <a href="#customer-cart" className="cart-nav-link">
+            <FaShoppingCart aria-hidden="true" />
+            <span>Cart ({cartCount})</span>
+          </a>
         </div>
       </div>
 
