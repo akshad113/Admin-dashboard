@@ -73,7 +73,12 @@ const getCustomerProducts = async (req, res) => {
         p.product_id,
         p.name,
         p.description,
+        p.brand,
         p.price,
+        p.mrp,
+        p.rating,
+        p.review_count,
+        p.features,
         p.stock_quantity,
         p.image_url,
         p.status,
@@ -125,7 +130,12 @@ const getHomeData = async (req, res) => {
         p.product_id,
         p.name,
         p.description,
+        p.brand,
         p.price,
+        p.mrp,
+        p.rating,
+        p.review_count,
+        p.features,
         p.stock_quantity,
         p.image_url,
         p.status,
@@ -162,3 +172,4 @@ module.exports = {
   getCustomerProducts,
   getHomeData
 };
+

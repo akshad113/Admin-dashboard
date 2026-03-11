@@ -7,12 +7,12 @@ const { authorizeRoles } = require("../../middleware/authMiddleware");
 const { validateBody } = require("../../middleware/validate");
 const { createProductSchema } = require("../../validation/schemas");
 
-router.get("/", verifyToken, authorizeRoles("Admin", "Manager"), getProducts);
-router.get("/mine", verifyToken, authorizeRoles("Admin", "Manager"), getMyProducts);
+router.get("/", verifyToken, authorizeRoles("Retailer"), getProducts);
+router.get("/mine", verifyToken, authorizeRoles("Retailer"), getMyProducts);
 router.post(
   "/create",
   verifyToken,
-  authorizeRoles("Admin", "Manager"),
+  authorizeRoles("Retailer"),
   validateBody(createProductSchema),
   createProduct
 );

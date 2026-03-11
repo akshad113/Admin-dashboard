@@ -1,34 +1,9 @@
 import { useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
-
 import HeroSection from "../components/HeroSection.jsx";
 import ProductCard from "../components/ProductCard.jsx";
 import TopNav from "../components/TopNav.jsx";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { useShopStore } from "../store/useShopStore.js";
-
-const formatRupees = (value) => {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return "NA";
-  }
-  return `Rs ${Math.round(parsed)}`;
-};
-
-const formatDateTime = (value) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "NA";
-  }
-
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(date);
-};
 
 export default function HomePage() {
   const categories = useShopStore((state) => state.categories);
@@ -41,15 +16,7 @@ export default function HomePage() {
   const categoriesError = useShopStore((state) => state.categoriesError);
   const productsError = useShopStore((state) => state.productsError);
 
-  const cartItems = useShopStore((state) => state.cartItems);
   const cartSummary = useShopStore((state) => state.cartSummary);
-  const cartLoading = useShopStore((state) => state.cartLoading);
-  const cartError = useShopStore((state) => state.cartError);
-
-  const orders = useShopStore((state) => state.orders);
-  const ordersLoading = useShopStore((state) => state.ordersLoading);
-  const orderError = useShopStore((state) => state.orderError);
-  const orderSuccess = useShopStore((state) => state.orderSuccess);
 
   const setSearchTerm = useShopStore((state) => state.setSearchTerm);
   const setSelectedCategory = useShopStore((state) => state.setSelectedCategory);
@@ -57,10 +24,6 @@ export default function HomePage() {
   const addToCart = useShopStore((state) => state.addToCart);
   const loadCart = useShopStore((state) => state.loadCart);
   const loadOrders = useShopStore((state) => state.loadOrders);
-  const placeOrder = useShopStore((state) => state.placeOrder);
-  const incrementCartItem = useShopStore((state) => state.incrementCartItem);
-  const decrementCartItem = useShopStore((state) => state.decrementCartItem);
-  const removeCartItem = useShopStore((state) => state.removeCartItem);
   const resetShopSession = useShopStore((state) => state.resetShopSession);
 
   const token = useAuthStore((state) => state.token);
@@ -127,7 +90,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="page-root">
+    <div className="min-h-screen">
       <TopNav
         categories={categories}
         cartCount={cartSummary.itemCount}
@@ -139,53 +102,91 @@ export default function HomePage() {
         onLogout={handleLogout}
       />
 
-      <main className="home-main">
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-8">
         <HeroSection />
 
-        <section className="quick-categories">
-          <h2>
-            Shop by category <span className="result-count">({filteredCategories.length})</span>
-          </h2>
+        <section id="categories" className="space-y-4">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-500">
+                Browse
+              </p>
+              <h2 className="text-2xl font-bold text-slate-900">Shop by category</h2>
+            </div>
+            <span className="text-sm font-semibold text-slate-500">
+              {filteredCategories.length} results
+            </span>
+          </div>
 
           {isLoadingCategories ? (
-            <p className="status-message">Loading categories...</p>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+              Loading categories...
+            </div>
           ) : categoriesError ? (
-            <div className="status-message error">
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
               <p>{categoriesError}</p>
-              <button type="button" className="retry-button" onClick={loadHomeData}>
+              <button
+                type="button"
+                className="mt-3 rounded-full bg-rose-500 px-4 py-2 text-xs font-semibold text-white"
+                onClick={loadHomeData}
+              >
                 Retry
               </button>
             </div>
           ) : filteredCategories.length > 0 ? (
-            <div className="category-grid">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
               {filteredCategories.map((category) => (
-                <article key={category.category_id} className="category-box">
-                  <div className="category-art" aria-hidden="true" />
-                  <h3>{category.name}</h3>
+                <article
+                  key={category.category_id}
+                  className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                >
+                  <div
+                    className="h-24 rounded-xl bg-gradient-to-br from-slate-100 via-sky-100 to-amber-100"
+                    aria-hidden="true"
+                  />
+                  <h3 className="mt-3 text-sm font-semibold text-slate-800">
+                    {category.name}
+                  </h3>
                 </article>
               ))}
             </div>
           ) : (
-            <p className="status-message">No categories match your current search.</p>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+              No categories match your current search.
+            </div>
           )}
         </section>
 
-        <section className="featured-products">
-          <h2>
-            Featured products <span className="result-count">({filteredProducts.length})</span>
-          </h2>
+        <section id="featured-products" className="space-y-4">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-500">
+                Spotlight
+              </p>
+              <h2 className="text-2xl font-bold text-slate-900">Featured products</h2>
+            </div>
+            <span className="text-sm font-semibold text-slate-500">
+              {filteredProducts.length} results
+            </span>
+          </div>
 
           {isLoadingProducts ? (
-            <p className="status-message">Loading products...</p>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+              Loading products...
+            </div>
           ) : productsError ? (
-            <div className="status-message error">
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
               <p>{productsError}</p>
-              <button type="button" className="retry-button" onClick={loadHomeData}>
+              <button
+                type="button"
+                className="mt-3 rounded-full bg-rose-500 px-4 py-2 text-xs font-semibold text-white"
+                onClick={loadHomeData}
+              >
                 Retry
               </button>
             </div>
           ) : filteredProducts.length > 0 ? (
-            <div className="product-grid">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {filteredProducts.slice(0, 8).map((product) => (
                 <ProductCard
                   key={product.product_id}
@@ -195,123 +196,8 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <p className="status-message">No products match your current search.</p>
-          )}
-        </section>
-
-        <section id="customer-cart" className="customer-section">
-          <h2>Your cart</h2>
-
-          {!customer ? (
-            <p className="status-message">
-              Login required for cart and checkout. <Link to="/login">Login now</Link>
-            </p>
-          ) : cartLoading ? (
-            <p className="status-message">Loading cart...</p>
-          ) : cartItems.length === 0 ? (
-            <p className="status-message">Your cart is empty.</p>
-          ) : (
-            <div className="cart-card">
-              <div className="cart-table-wrap">
-                <table className="cart-table">
-                  <thead>
-                    <tr>
-                      <th>Product</th>
-                      <th>Price</th>
-                      <th>Qty</th>
-                      <th>Total</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cartItems.map((item) => (
-                      <tr key={item.cart_item_id}>
-                        <td>
-                          <p className="cart-product-name">{item.product_name}</p>
-                          <p className="cart-product-meta">{item.category_name || "General"}</p>
-                        </td>
-                        <td>{formatRupees(item.unit_price)}</td>
-                        <td>
-                          <div className="qty-controls">
-                            <button
-                              type="button"
-                              onClick={() => decrementCartItem(item.product_id, token)}
-                            >
-                              -
-                            </button>
-                            <span>{item.quantity}</span>
-                            <button
-                              type="button"
-                              onClick={() => incrementCartItem(item.product_id, token)}
-                            >
-                              +
-                            </button>
-                          </div>
-                        </td>
-                        <td>{formatRupees(item.line_total)}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className="remove-item-btn"
-                            onClick={() => removeCartItem(item.product_id, token)}
-                          >
-                            Remove
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="cart-footer">
-                <p>
-                  Total ({cartSummary.itemCount} items): <strong>{formatRupees(cartSummary.totalAmount)}</strong>
-                </p>
-                <button type="button" className="checkout-btn" onClick={() => placeOrder(token)}>
-                  Place Order
-                </button>
-              </div>
-            </div>
-          )}
-
-          {cartError ? <p className="inline-error">{cartError}</p> : null}
-          {orderError ? <p className="inline-error">{orderError}</p> : null}
-          {orderSuccess ? <p className="inline-success">{orderSuccess}</p> : null}
-        </section>
-
-        <section id="customer-orders" className="customer-section">
-          <h2>Your orders</h2>
-
-          {!customer ? (
-            <p className="status-message">Login required to view orders.</p>
-          ) : ordersLoading ? (
-            <p className="status-message">Loading orders...</p>
-          ) : orders.length === 0 ? (
-            <p className="status-message">No orders placed yet.</p>
-          ) : (
-            <div className="orders-list">
-              {orders.map((order) => (
-                <article key={order.order_id} className="order-card">
-                  <header>
-                    <h3>Order #{order.order_id}</h3>
-                    <p>{formatDateTime(order.created_at)}</p>
-                  </header>
-                  <p className="order-summary">
-                    Status: <strong>{order.status}</strong> | Total: <strong>{formatRupees(order.total_amount)}</strong>
-                  </p>
-                  <ul>
-                    {(order.items || []).map((item) => (
-                      <li key={item.order_item_id}>
-                        <span>{item.product_name}</span>
-                        <span>
-                          {item.quantity} x {formatRupees(item.unit_price)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </article>
-              ))}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+              No products match your current search.
             </div>
           )}
         </section>

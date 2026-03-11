@@ -35,8 +35,5 @@ export const hasRetailerAccess = () => {
   }
 
   const roles = Array.isArray(user.roles) ? user.roles : [];
-  return roles.some((role) => {
-    const normalized = String(role).toLowerCase();
-    return normalized === "manager" || normalized === "admin";
-  });
+  return roles.some((role) => String(role).toLowerCase() === "retailer");
 };

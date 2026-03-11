@@ -68,7 +68,12 @@ const getProducts = async (_req, res) => {
         p.product_id,
         p.name,
         p.description,
+        p.brand,
         p.price,
+        p.mrp,
+        p.rating,
+        p.review_count,
+        p.features,
         p.stock_quantity,
         p.category_id,
         p.subcategory_id,
@@ -110,7 +115,12 @@ const getMyProducts = async (req, res) => {
         p.product_id,
         p.name,
         p.description,
+        p.brand,
         p.price,
+        p.mrp,
+        p.rating,
+        p.review_count,
+        p.features,
         p.stock_quantity,
         p.category_id,
         p.subcategory_id,
@@ -144,16 +154,44 @@ const createProduct = async (req, res) => {
     name,
     description,
     price,
+    mrp,
     stock_quantity,
     category_id,
     subcategory_id,
     image_url,
     status,
+    brand,
+    rating,
+    review_count,
+    features,
   } = req.body;
 
   const normalizedStatus =
     String(status || "active").toLowerCase() === "inactive" ? "inactive" : "active";
   const user_id = req.user?.id || null;
+  const normalizedBrand = String(brand || "").trim() || null;
+  const normalizedRating =
+    rating === null || rating === undefined || rating === "" ? null : Number(rating);
+  const normalizedReviewCount =
+    review_count === null || review_count === undefined || review_count === ""
+      ? 0
+      : Number.parseInt(review_count, 10);
+
+  let featuresPayload = null;
+  if (Array.isArray(features)) {
+    const cleaned = features.map((entry) => String(entry || "").trim()).filter(Boolean);
+    if (cleaned.length > 0) {
+      featuresPayload = JSON.stringify(cleaned);
+    }
+  } else if (typeof features === "string") {
+    const cleaned = features
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    if (cleaned.length > 0) {
+      featuresPayload = JSON.stringify(cleaned);
+    }
+  }
 
   try {
     let normalizedImageUrl = null;
@@ -199,12 +237,17 @@ const createProduct = async (req, res) => {
 
     const result = await query(
       `INSERT INTO products
-        (name,description,price,stock_quantity,category_id,subcategory_id,user_id,image_url,status)
-       VALUES (?,?,?,?,?,?,?,?,?)`,
+        (name,description,brand,price,mrp,rating,review_count,features,stock_quantity,category_id,subcategory_id,user_id,image_url,status)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         name,
         description,
+        normalizedBrand,
         price,
+        mrp ?? null,
+        Number.isFinite(normalizedRating) ? normalizedRating : null,
+        Number.isFinite(normalizedReviewCount) ? normalizedReviewCount : 0,
+        featuresPayload,
         stock_quantity,
         category_id,
         subcategory_id,
@@ -225,3 +268,4 @@ const createProduct = async (req, res) => {
 };
 
 module.exports = { createProduct, getProducts, getMyProducts };
+

@@ -31,7 +31,7 @@ function Login() {
     setSubmitting(true);
 
     try {
-      const payload = await apiRequest("/login", {
+      const payload = await apiRequest("/retailer/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -43,10 +43,9 @@ function Login() {
       });
 
       const roles = Array.isArray(payload?.user?.roles) ? payload.user.roles : [];
-      const hasRetailerRole = roles.some((role) => {
-        const normalized = String(role).toLowerCase();
-        return normalized === "manager" || normalized === "admin";
-      });
+      const hasRetailerRole = roles.some(
+        (role) => String(role).toLowerCase() === "retailer"
+      );
 
       if (!hasRetailerRole) {
         setError("This account does not have retailer access.");

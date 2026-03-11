@@ -8,11 +8,16 @@ import { apiRequest } from "../lib/api";
 
 const initialForm = {
   name: "",
+  brand: "",
   categoryId: "",
   subcategoryId: "",
   price: "",
+  mrp: "",
+  rating: "",
+  reviewCount: "",
   stockQuantity: "0",
   description: "",
+  features: "",
   imageUrl: "",
   status: "active",
 };
@@ -56,7 +61,14 @@ function Products() {
           body: JSON.stringify({
             name: values.name.trim(),
             description: values.description.trim() || null,
+            brand: values.brand.trim() || null,
             price: Number(values.price),
+            mrp: values.mrp ? Number(values.mrp) : null,
+            rating: values.rating ? Number(values.rating) : null,
+            review_count: values.reviewCount ? Number.parseInt(values.reviewCount, 10) : 0,
+            features: values.features
+              ? values.features.split(",").map((item) => item.trim()).filter(Boolean)
+              : null,
             stock_quantity: Number.parseInt(values.stockQuantity, 10),
             category_id: Number.parseInt(values.categoryId, 10),
             subcategory_id: values.subcategoryId
@@ -176,6 +188,22 @@ function Products() {
           </div>
 
           <div>
+            <label className="mb-1 block text-sm font-semibold text-slate-700">Brand</label>
+            <input
+              name="brand"
+              type="text"
+              placeholder="Apple"
+              className={inputClass(Boolean(formik.touched.brand && formik.errors.brand))}
+              value={formik.values.brand}
+              onChange={handleFieldChange}
+              onBlur={formik.handleBlur}
+            />
+            {formik.touched.brand && formik.errors.brand ? (
+              <p className="mt-1 text-xs text-red-600">{formik.errors.brand}</p>
+            ) : null}
+          </div>
+
+          <div>
             <label className="mb-1 block text-sm font-semibold text-slate-700">Category</label>
             <select
               name="categoryId"
@@ -249,6 +277,63 @@ function Products() {
           </div>
 
           <div>
+            <label className="mb-1 block text-sm font-semibold text-slate-700">MRP</label>
+            <input
+              name="mrp"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="59.00"
+              className={inputClass(Boolean(formik.touched.mrp && formik.errors.mrp))}
+              value={formik.values.mrp}
+              onChange={handleFieldChange}
+              onBlur={formik.handleBlur}
+            />
+            {formik.touched.mrp && formik.errors.mrp ? (
+              <p className="mt-1 text-xs text-red-600">{formik.errors.mrp}</p>
+            ) : null}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-slate-700">Rating</label>
+            <input
+              name="rating"
+              type="number"
+              step="0.1"
+              min="0"
+              max="5"
+              placeholder="4.5"
+              className={inputClass(Boolean(formik.touched.rating && formik.errors.rating))}
+              value={formik.values.rating}
+              onChange={handleFieldChange}
+              onBlur={formik.handleBlur}
+            />
+            {formik.touched.rating && formik.errors.rating ? (
+              <p className="mt-1 text-xs text-red-600">{formik.errors.rating}</p>
+            ) : null}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-slate-700">Reviews</label>
+            <input
+              name="reviewCount"
+              type="number"
+              step="1"
+              min="0"
+              placeholder="120"
+              className={inputClass(
+                Boolean(formik.touched.reviewCount && formik.errors.reviewCount)
+              )}
+              value={formik.values.reviewCount}
+              onChange={handleFieldChange}
+              onBlur={formik.handleBlur}
+            />
+            {formik.touched.reviewCount && formik.errors.reviewCount ? (
+              <p className="mt-1 text-xs text-red-600">{formik.errors.reviewCount}</p>
+            ) : null}
+          </div>
+
+          <div>
             <label className="mb-1 block text-sm font-semibold text-slate-700">Stock Quantity</label>
             <input
               name="stockQuantity"
@@ -315,6 +400,24 @@ function Products() {
             ) : null}
           </div>
 
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-sm font-semibold text-slate-700">
+              Features (comma separated)
+            </label>
+            <input
+              name="features"
+              type="text"
+              placeholder="Fast Charging, AMOLED, 5G Enabled"
+              className={inputClass(Boolean(formik.touched.features && formik.errors.features))}
+              value={formik.values.features}
+              onChange={handleFieldChange}
+              onBlur={formik.handleBlur}
+            />
+            {formik.touched.features && formik.errors.features ? (
+              <p className="mt-1 text-xs text-red-600">{formik.errors.features}</p>
+            ) : null}
+          </div>
+
           {submitMessage.text ? (
             <div className="md:col-span-2">
               <p
@@ -352,6 +455,9 @@ function Products() {
                 Price
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Rating
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Stock
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -362,19 +468,19 @@ function Products() {
           <tbody className="divide-y divide-slate-100">
             {myProductsLoading ? (
               <tr>
-                <td className="px-4 py-4 text-sm text-slate-500" colSpan={5}>
+                <td className="px-4 py-4 text-sm text-slate-500" colSpan={6}>
                   Loading your products...
                 </td>
               </tr>
             ) : myProductsError ? (
               <tr>
-                <td className="px-4 py-4 text-sm text-red-600" colSpan={5}>
+                <td className="px-4 py-4 text-sm text-red-600" colSpan={6}>
                   {myProductsError}
                 </td>
               </tr>
             ) : myProducts.length === 0 ? (
               <tr>
-                <td className="px-4 py-4 text-sm text-slate-500" colSpan={5}>
+                <td className="px-4 py-4 text-sm text-slate-500" colSpan={6}>
                   No products uploaded yet.
                 </td>
               </tr>
@@ -383,11 +489,32 @@ function Products() {
                 <tr key={product.product_id}>
                   <td className="px-4 py-3 text-sm text-slate-700">
                     <p className="font-semibold text-slate-900">{product.name}</p>
-                    <p className="text-xs text-slate-500">{product.subcategory_name || "General"}</p>
+                    <p className="text-xs text-slate-500">
+                      {product.brand || "Brand"} · {product.subcategory_name || "General"}
+                    </p>
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-700">{product.category_name || "General"}</td>
                   <td className="px-4 py-3 text-sm font-semibold text-slate-900">
-                    {formatPrice(product.price)}
+                    <div className="space-y-1">
+                      <p>{formatPrice(product.price)}</p>
+                      {product.mrp ? (
+                        <p className="text-xs font-normal text-slate-400 line-through">
+                          {formatPrice(product.mrp)}
+                        </p>
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-slate-700">
+                    {product.rating ? (
+                      <span className="font-semibold text-slate-900">
+                        {Number(product.rating).toFixed(1)}{" "}
+                        <span className="text-xs text-slate-500">
+                          ({product.review_count || 0})
+                        </span>
+                      </span>
+                    ) : (
+                      "NA"
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-700">{product.stock_quantity}</td>
                   <td className="px-4 py-3 text-sm">

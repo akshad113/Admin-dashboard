@@ -21,11 +21,30 @@ const createProductSchema = Joi.object({
     "any.required": "Name is required",
   }),
   description: Joi.string().trim().max(65535).allow(null).empty("").default(null),
+  brand: Joi.string().trim().max(100).allow(null).empty("").default(null),
   price: Joi.number().min(0).required().messages({
     "number.base": "Price must be a non-negative number",
     "number.min": "Price must be a non-negative number",
     "any.required": "Price is required",
   }),
+  mrp: Joi.number().min(0).allow(null).empty("").default(null).messages({
+    "number.base": "MRP must be a non-negative number",
+    "number.min": "MRP must be a non-negative number",
+  }),
+  rating: Joi.number().min(0).max(5).allow(null).empty("").default(null).messages({
+    "number.base": "Rating must be between 0 and 5",
+    "number.min": "Rating must be between 0 and 5",
+    "number.max": "Rating must be between 0 and 5",
+  }),
+  review_count: Joi.number().integer().min(0).allow(null).empty("").default(0).messages({
+    "number.base": "Review count must be a non-negative integer",
+    "number.integer": "Review count must be a non-negative integer",
+    "number.min": "Review count must be a non-negative integer",
+  }),
+  features: Joi.array()
+    .items(Joi.string().trim().max(100))
+    .allow(null)
+    .default(null),
   stock_quantity: Joi.number().integer().min(0).default(0).messages({
     "number.base": "Stock quantity must be a non-negative integer",
     "number.integer": "Stock quantity must be a non-negative integer",
