@@ -4,10 +4,13 @@ const express = require('express');
 const cors = require('cors');
 
 const userRouter = require('./admin/routes/Users');
+const adminOrdersRouter = require('./admin/routes/Orders');
 const categoryRouter = require('./admin/routes/Categories');
 const subcategoryRouter = require('./admin/routes/Subcategories');
 const productRouter = require('./retailer/routes/Products');
 const retailerAuthRouter = require('./retailer/routes/Auth');
+const retailerOrdersRouter = require('./retailer/routes/Orders');
+const retailerProfileRouter = require('./retailer/routes/Profile');
 const customerRouter = require("./customer/routes/Home");
 const customerAuthRouter = require("./customer/routes/Auth");
 const customerCartRouter = require("./customer/routes/Cart");
@@ -46,10 +49,13 @@ app.use(express.urlencoded({ extended: true }));
 /////////////////////////////////////////////////
 
 app.use('/api', userRouter);
+app.use('/api/admin/orders', adminOrdersRouter);
 app.use('/api/categories', categoryRouter);
 app.use('/api/subcategories', subcategoryRouter);
 app.use('/api/products', productRouter);
 app.use('/api/retailer/auth', retailerAuthRouter);
+app.use('/api/retailer/orders', retailerOrdersRouter);
+app.use('/api/retailer/profile', retailerProfileRouter);
 app.use("/api/customer", customerRouter);
 app.use("/api/customer/auth", customerAuthRouter);
 app.use("/api/customer/cart", customerCartRouter);

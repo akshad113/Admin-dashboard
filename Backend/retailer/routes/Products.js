@@ -7,7 +7,7 @@ const { authorizeRoles } = require("../../middleware/authMiddleware");
 const { validateBody } = require("../../middleware/validate");
 const { createProductSchema } = require("../../validation/schemas");
 
-router.get("/", verifyToken, authorizeRoles("Retailer"), getProducts);
+router.get("/", verifyToken, authorizeRoles("Retailer", "Admin"), getProducts);
 router.get("/mine", verifyToken, authorizeRoles("Retailer"), getMyProducts);
 router.post(
   "/create",

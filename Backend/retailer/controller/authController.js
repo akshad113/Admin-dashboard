@@ -21,7 +21,7 @@ const signToken = (user) =>
 const loginRetailer = async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
-    const password = req.body.password;
+    const password = req.body.password
 
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required" });
