@@ -44,16 +44,6 @@ function Users() {
     return palettes[key % palettes.length];
   };
 
-  const getStatusClasses = (status) => {
-    const value = String(status || "").toLowerCase();
-    if (value.includes("active")) return "bg-emerald-50 text-emerald-700 ring-emerald-200";
-    if (value.includes("pending")) return "bg-amber-50 text-amber-700 ring-amber-200";
-    if (value.includes("blocked") || value.includes("inactive")) {
-      return "bg-rose-50 text-rose-700 ring-rose-200";
-    }
-    return "bg-slate-50 text-slate-600 ring-slate-200";
-  };
-
   const loadUsers = useCallback(async () => {
     setLoading(true);
     setError("");

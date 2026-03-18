@@ -295,3 +295,15 @@ Allowed origins include:
 - `404` on new backend routes: restart backend from `Backend/`.
 - `Failed to fetch`: verify backend is running and frontend proxy/base URL is correct.
 - JWT issues on protected routes: check `Authorization: Bearer <token>`.
+
+## Project Health Check (March 18, 2026)
+Validation run on this repo snapshot:
+
+- `admin-frontend`: `npm run lint` passed
+- `admin-frontend`: `npm run build` passed
+- `retailer-frontend`: `npm run build` passed
+- `customer-frontend`: `npm run build` passed
+
+Notes:
+- `Backend` currently has no automated test suite configured (`npm test` is placeholder).
+- Admin dashboard build reports large bundle-size warnings from Vite; this does not block build, but code-splitting can improve performance.
