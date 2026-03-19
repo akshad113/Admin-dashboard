@@ -1,13 +1,19 @@
-const connection = require("../../db/userDB");
-const util = require("util");
-const axios = require("axios");
+const axios = require('axios');
+const util = require('util');
+
+const connection = require('../../db/userDB');
 
 const query = util.promisify(connection.query).bind(connection);
 
 const MAX_IMAGE_URL_LENGTH = 2048;
 
+// Normalize any text input so the controller can safely reuse it.
+const normalizeText = (value) => String(value ?? '').trim();
+
+// Convert a value into a valid HTTP URL string or return null.
 const getValidShortUrl = (value) => {
-  const text = String(value || "").trim();
+  const text = normalizeText(value);
+
   if (!/^https?:\/\/\S+$/i.test(text)) {
     return null;
   }
@@ -15,8 +21,29 @@ const getValidShortUrl = (value) => {
   return text;
 };
 
+// Convert product features into a JSON string payload.
+const buildFeaturesPayload = (features) => {
+  if (Array.isArray(features)) {
+    const cleanedFeatures = features.map((entry) => normalizeText(entry)).filter(Boolean);
+
+    return cleanedFeatures.length > 0 ? JSON.stringify(cleanedFeatures) : null;
+  }
+
+  if (typeof features === 'string') {
+    const cleanedFeatures = features
+      .split(',')
+      .map((entry) => normalizeText(entry))
+      .filter(Boolean);
+
+    return cleanedFeatures.length > 0 ? JSON.stringify(cleanedFeatures) : null;
+  }
+
+  return null;
+};
+
+// Shorten a URL using the TinyURL API.
 const shortenWithTinyUrl = async (url) => {
-  const response = await axios.get("https://tinyurl.com/api-create.php", {
+  const response = await axios.get('https://tinyurl.com/api-create.php', {
     params: { url },
     timeout: 8000,
   });
@@ -24,17 +51,20 @@ const shortenWithTinyUrl = async (url) => {
   return getValidShortUrl(response.data);
 };
 
+// Shorten a URL using the is.gd API.
 const shortenWithIsGd = async (url) => {
-  const response = await axios.get("https://is.gd/create.php", {
-    params: { format: "simple", url },
+  const response = await axios.get('https://is.gd/create.php', {
+    params: { format: 'simple', url },
     timeout: 8000,
   });
 
   return getValidShortUrl(response.data);
 };
 
+// Shorten long product image URLs when needed.
 const shortenImageUrlIfNeeded = async (rawUrl) => {
-  const imageUrl = String(rawUrl || "").trim();
+  const imageUrl = normalizeText(rawUrl);
+
   if (!imageUrl) {
     return null;
   }
@@ -44,9 +74,11 @@ const shortenImageUrlIfNeeded = async (rawUrl) => {
   }
 
   const shorteners = [shortenWithTinyUrl, shortenWithIsGd];
+
   for (const shorten of shorteners) {
     try {
       const shortened = await shorten(imageUrl);
+
       if (shortened && shortened.length <= MAX_IMAGE_URL_LENGTH) {
         return shortened;
       }
@@ -55,12 +87,10 @@ const shortenImageUrlIfNeeded = async (rawUrl) => {
     }
   }
 
-  throw new Error("Unable to shorten image URL. Please try another image link.");
+  throw new Error('Unable to shorten image URL. Please try another image link.');
 };
 
-///////////////////
-// GET PRODUCTS
-///////////////////
+// Fetch every product with its category, subcategory, and creator details.
 const getProducts = async (_req, res) => {
   try {
     const rows = await query(
@@ -96,18 +126,17 @@ const getProducts = async (_req, res) => {
     return res.status(200).json(rows);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
-///////////////////
-// GET MY PRODUCTS
-///////////////////
+// Fetch only the products that belong to the authenticated retailer.
 const getMyProducts = async (req, res) => {
   try {
     const userId = req.user?.id;
+
     if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: 'Unauthorized' });
     }
 
     const rows = await query(
@@ -142,95 +171,62 @@ const getMyProducts = async (req, res) => {
     return res.status(200).json(rows);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
-///////////////////
-// CREATE PRODUCTS
-///////////////////
+// Create a product after validating the referenced category and subcategory.
 const createProduct = async (req, res) => {
-  const {
-    name,
-    description,
-    price,
-    mrp,
-    stock_quantity,
-    category_id,
-    subcategory_id,
-    image_url,
-    status,
-    brand,
-    rating,
-    review_count,
-    features,
-  } = req.body;
+  const { name, description, price, mrp, stock_quantity, category_id, subcategory_id, image_url, status, brand, rating, review_count, features } = req.body;
 
-  const normalizedStatus =
-    String(status || "active").toLowerCase() === "inactive" ? "inactive" : "active";
-  const user_id = req.user?.id || null;
-  const normalizedBrand = String(brand || "").trim() || null;
-  const normalizedRating =
-    rating === null || rating === undefined || rating === "" ? null : Number(rating);
+  const normalizedStatus = normalizeText(status).toLowerCase() === 'inactive' ? 'inactive' : 'active';
+  const userId = req.user?.id || null;
+  const normalizedBrand = normalizeText(brand) || null;
+  const normalizedRating = rating === null || rating === undefined || rating === '' ? null : Number(rating);
   const normalizedReviewCount =
-    review_count === null || review_count === undefined || review_count === ""
+    review_count === null || review_count === undefined || review_count === ''
       ? 0
       : Number.parseInt(review_count, 10);
-
-  let featuresPayload = null;
-  if (Array.isArray(features)) {
-    const cleaned = features.map((entry) => String(entry || "").trim()).filter(Boolean);
-    if (cleaned.length > 0) {
-      featuresPayload = JSON.stringify(cleaned);
-    }
-  } else if (typeof features === "string") {
-    const cleaned = features
-      .split(",")
-      .map((entry) => entry.trim())
-      .filter(Boolean);
-    if (cleaned.length > 0) {
-      featuresPayload = JSON.stringify(cleaned);
-    }
-  }
+  const featuresPayload = buildFeaturesPayload(features);
 
   try {
     let normalizedImageUrl = null;
+
     try {
       normalizedImageUrl = await shortenImageUrlIfNeeded(image_url);
     } catch (error) {
       return res.status(400).json({
-        message: error.message || "Invalid image URL",
+        message: error.message || 'Invalid image URL',
       });
     }
 
     if (category_id) {
-      const cat = await query(
-        "SELECT category_id FROM categories WHERE category_id = ?",
-        [category_id]
-      );
+      const categoryRows = await query('SELECT category_id FROM categories WHERE category_id = ?', [
+        category_id,
+      ]);
 
-      if (cat.length === 0) {
+      if (categoryRows.length === 0) {
         return res.status(404).json({
-          message: "Category not found",
+          message: 'Category not found',
         });
       }
     }
 
     if (subcategory_id) {
-      const subcategory = await query(
-        "SELECT subcategory_id, category_id FROM subcategories WHERE subcategory_id = ?",
+      const subcategoryRows = await query(
+        'SELECT subcategory_id, category_id FROM subcategories WHERE subcategory_id = ?',
         [subcategory_id]
       );
 
-      if (subcategory.length === 0) {
+      if (subcategoryRows.length === 0) {
         return res.status(404).json({
-          message: "Subcategory not found",
+          message: 'Subcategory not found',
         });
       }
 
-      if (category_id && Number(subcategory[0].category_id) !== Number(category_id)) {
+      if (category_id && Number(subcategoryRows[0].category_id) !== Number(category_id)) {
         return res.status(400).json({
-          message: "Subcategory does not belong to selected category",
+          message: 'Subcategory does not belong to selected category',
         });
       }
     }
@@ -251,21 +247,20 @@ const createProduct = async (req, res) => {
         stock_quantity,
         category_id,
         subcategory_id,
-        user_id,
+        userId,
         normalizedImageUrl,
         normalizedStatus,
       ]
     );
 
     return res.status(201).json({
-      message: "Product created",
+      message: 'Product created',
       productId: result.insertId,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
 module.exports = { createProduct, getProducts, getMyProducts };
-

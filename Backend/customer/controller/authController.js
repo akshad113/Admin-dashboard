@@ -1,41 +1,39 @@
-const util = require("util");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const connection = require("../../db/userDB");
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const util = require('util');
+
+const connection = require('../../db/userDB');
 
 const query = util.promisify(connection.query).bind(connection);
 
-const CUSTOMER_ROLE = "User";
+// Normalize any text input so the controller always works with clean values.
+const normalizeText = (value) => String(value ?? '').trim();
 
+// Normalize email addresses into a lowercase string.
+const normalizeEmail = (value) => normalizeText(value).toLowerCase();
+
+// Turn role rows into a unique list of role names.
+const extractRoleNames = (rows) => [...new Set(rows.map((row) => row.role_name).filter(Boolean))];
+
+// Map joined user rows into a single user object with a role list.
 const mapRowsToUser = (rows) => {
   if (!rows || rows.length === 0) {
     return null;
   }
 
-  const base = rows[0];
-  const roles = [...new Set(rows.map((row) => row.role_name).filter(Boolean))];
+  const baseUser = rows[0];
 
   return {
-    id: base.user_id,
-    name: base.name,
-    email: base.email,
-    status: base.status,
-    password: base.password,
-    roles
+    id: baseUser.user_id,
+    name: baseUser.name,
+    email: baseUser.email,
+    status: baseUser.status,
+    password: baseUser.password,
+    roles: extractRoleNames(rows),
   };
 };
 
-const signToken = (user) =>
-  jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      roles: user.roles
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || "1d" }
-  );
-
+// Fetch a user by email together with all role names.
 const fetchUserWithRolesByEmail = async (email) => {
   const rows = await query(
     `SELECT
@@ -55,7 +53,8 @@ const fetchUserWithRolesByEmail = async (email) => {
   return mapRowsToUser(rows);
 };
 
-const fetchUserWithRolesById = async (id) => {
+// Fetch a user by id together with all role names.
+const fetchUserWithRolesById = async (userId) => {
   const rows = await query(
     `SELECT
       u.user_id,
@@ -68,146 +67,175 @@ const fetchUserWithRolesById = async (id) => {
     LEFT JOIN role_assign ra ON ra.user_id = u.user_id
     LEFT JOIN roles r ON r.role_id = ra.role_id
     WHERE u.user_id = ?`,
-    [id]
+    [userId]
   );
 
   return mapRowsToUser(rows);
 };
 
-const requireCustomerRole = (user) =>
-  user.roles.some((role) => String(role).toLowerCase() === CUSTOMER_ROLE.toLowerCase());
+// Check whether a user has the customer role.
+const hasCustomerRole = (user) =>
+  user.roles.some((role) => String(role).toLowerCase() === 'user');
 
-const registerCustomer = async (req, res) => {
-  let tx = null;
+// Sign a JWT for the current user payload.
+const signToken = (user) =>
+  jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      roles: user.roles,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
+  );
+
+// Run multiple SQL statements inside one transaction.
+const runInTransaction = async (task) => {
+  const transaction = await connection.promise().getConnection();
 
   try {
-    const name = String(req.body.name || "").trim();
-    const email = String(req.body.email || "").trim().toLowerCase();
+    await transaction.beginTransaction();
+    const result = await task(transaction);
+    await transaction.commit();
+    return result;
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  } finally {
+    transaction.release();
+  }
+};
+
+// Get the role id for the customer role or create the role when it does not exist.
+const getOrCreateCustomerRoleId = async (transaction) => {
+  const [roleRows] = await transaction.query(
+    'SELECT role_id FROM roles WHERE LOWER(role_name) = LOWER(?) LIMIT 1',
+    ['User']
+  );
+
+  if (roleRows.length > 0) {
+    return roleRows[0].role_id;
+  }
+
+  const [roleInsert] = await transaction.query('INSERT INTO roles (role_name) VALUES (?)', [
+    'User',
+  ]);
+
+  return roleInsert.insertId;
+};
+
+// Create a customer account inside a transaction and return a JWT session.
+const registerCustomer = async (req, res) => {
+  try {
+    const name = normalizeText(req.body.name);
+    const email = normalizeEmail(req.body.email);
     const password = req.body.password;
 
-    const existing = await query("SELECT user_id FROM users WHERE email = ? LIMIT 1", [email]);
-    if (existing.length > 0) {
-      return res.status(409).json({ message: "Email already exists" });
+    const existingUser = await query('SELECT user_id FROM users WHERE email = ? LIMIT 1', [email]);
+
+    if (existingUser.length > 0) {
+      return res.status(409).json({ message: 'Email already exists' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    tx = await connection.promise().getConnection();
-    await tx.beginTransaction();
+    const userId = await runInTransaction(async (transaction) => {
+      const [userInsert] = await transaction.query(
+        "INSERT INTO users (name, email, password, status) VALUES (?, ?, ?, 'active')",
+        [name, email, hashedPassword]
+      );
 
-    const [userInsert] = await tx.query(
-      "INSERT INTO users (name, email, password, status) VALUES (?, ?, ?, 'active')",
-      [name, email, hashedPassword]
-    );
+      const roleId = await getOrCreateCustomerRoleId(transaction);
 
-    const [roleRows] = await tx.query(
-      "SELECT role_id FROM roles WHERE LOWER(role_name) = LOWER(?) LIMIT 1",
-      [CUSTOMER_ROLE]
-    );
-
-    let roleId = null;
-    if (roleRows.length > 0) {
-      roleId = roleRows[0].role_id;
-    } else {
-      const [roleInsert] = await tx.query("INSERT INTO roles (role_name) VALUES (?)", [
-        CUSTOMER_ROLE
+      await transaction.query('INSERT INTO role_assign (user_id, role_id) VALUES (?, ?)', [
+        userInsert.insertId,
+        roleId,
       ]);
-      roleId = roleInsert.insertId;
-    }
 
-    await tx.query("INSERT INTO role_assign (user_id, role_id) VALUES (?, ?)", [
-      userInsert.insertId,
-      roleId
-    ]);
-
-    await tx.commit();
+      return userInsert.insertId;
+    });
 
     const user = {
-      id: userInsert.insertId,
+      id: userId,
       name,
       email,
-      roles: [CUSTOMER_ROLE]
+      roles: ['User'],
     };
 
-    const token = signToken(user);
-
     return res.status(201).json({
-      message: "Customer account created successfully",
-      token,
-      user
+      message: 'Customer account created successfully',
+      token: signToken(user),
+      user,
     });
   } catch (error) {
     console.error(error);
-    if (tx) {
-      await tx.rollback();
-    }
-    return res.status(500).json({ message: "Server error while creating customer account" });
-  } finally {
-    if (tx) {
-      tx.release();
-    }
+    return res.status(500).json({ message: 'Server error while creating customer account' });
   }
 };
 
+// Log in a customer after password and role checks pass.
 const loginCustomer = async (req, res) => {
   try {
-    const email = String(req.body.email || "").trim().toLowerCase();
+    const email = normalizeEmail(req.body.email);
     const password = req.body.password;
 
     const user = await fetchUserWithRolesByEmail(email);
+
     if (!user) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    if (String(user.status || "").toLowerCase() !== "active") {
-      return res.status(403).json({ message: "Access denied. User inactive." });
+    if (normalizeText(user.status).toLowerCase() !== 'active') {
+      return res.status(403).json({ message: 'Access denied. User inactive.' });
     }
 
-    if (!requireCustomerRole(user)) {
-      return res.status(403).json({ message: "Customer access is not enabled for this account" });
+    if (!hasCustomerRole(user)) {
+      return res.status(403).json({ message: 'Customer access is not enabled for this account' });
     }
-
-    const token = signToken(user);
 
     return res.status(200).json({
-      message: "Login successful",
-      token,
+      message: 'Login successful',
+      token: signToken(user),
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        roles: user.roles
-      }
+        roles: user.roles,
+      },
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server error while logging in" });
+    return res.status(500).json({ message: 'Server error while logging in' });
   }
 };
 
+// Return the currently authenticated customer profile.
 const getCustomerMe = async (req, res) => {
   try {
     const userId = req.user?.id;
+
     if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: 'Unauthorized' });
     }
 
     const user = await fetchUserWithRolesById(userId);
+
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    if (String(user.status || "").toLowerCase() !== "active") {
-      return res.status(403).json({ message: "Access denied. User inactive." });
+    if (normalizeText(user.status).toLowerCase() !== 'active') {
+      return res.status(403).json({ message: 'Access denied. User inactive.' });
     }
 
-    if (!requireCustomerRole(user)) {
-      return res.status(403).json({ message: "Customer access is not enabled for this account" });
+    if (!hasCustomerRole(user)) {
+      return res.status(403).json({ message: 'Customer access is not enabled for this account' });
     }
 
     return res.status(200).json({
@@ -215,17 +243,17 @@ const getCustomerMe = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        roles: user.roles
-      }
+        roles: user.roles,
+      },
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server error while fetching profile" });
+    return res.status(500).json({ message: 'Server error while fetching profile' });
   }
 };
 
 module.exports = {
   registerCustomer,
   loginCustomer,
-  getCustomerMe
+  getCustomerMe,
 };

@@ -1,128 +1,82 @@
-import React from "react";
-import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import {
-  FaHome,
-  FaUser,
-  FaShoppingBag,
-  FaTags,
-  FaCreditCard,
-  FaEllipsisH,
-  FaChartBar,
-  FaCog,
-  FaSignOutAlt,
-} from "react-icons/fa";
-import { TbTruckDelivery } from "react-icons/tb";
+import { NavLink, useLocation } from "react-router-dom";
+import { FaChartBar, FaCog, FaCreditCard, FaHome, FaShoppingBag, FaTags, FaUser } from "react-icons/fa";
 import { IoStatsChart } from "react-icons/io5";
+import { TbTruckDelivery } from "react-icons/tb";
 
-function Sidebar1() {
-  const [openMenu, setOpenMenu] = useState(null);
-  const navigate = useNavigate();
+const mainLinks = [
+  { label: "Dashboard", path: "/", icon: FaHome },
+  { label: "Users", path: "/users", icon: FaUser },
+  { label: "Products", path: "/products", icon: FaShoppingBag },
+  { label: "Orders", path: "/orders", icon: TbTruckDelivery },
+  { label: "Payments", path: "/payments", icon: FaCreditCard },
+  { label: "Reports", path: "/reports", icon: FaChartBar },
+  { label: "Settings", path: "/settings", icon: FaCog },
+  { label: "Other", path: "/others", icon: FaTags },
+];
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login", { replace: true, state: { message: "Logged out successfully" } });
-  };
+const categoryLinks = [
+  { label: "Categories", path: "/categories" },
+  { label: "Subcategories", path: "/subcategories" },
+];
 
-  const menuItems = [
-    { title: "Dashboard", icon: <FaHome />, path: "/" },
-    { title: "Users", icon: <FaUser />, path: "/users" },
-    {
-      title: "Categories",
-      icon: <FaTags />,
-      subItems: [
-        { title: "Categories", path: "/categories" },
-        { title: "Subcategories", path: "/subcategories" },
-      ],
-    },
-    { title: "Products", icon: <FaShoppingBag />, path: "/products" },
-    { title: "Orders", icon: <TbTruckDelivery />, path: "/orders" },
-    { title: "Payment", icon: <FaCreditCard />, path: "/payments" },
-    { title: "Others", icon: <FaEllipsisH />, path: "/others" },
-    { title: "Reports", icon: <FaChartBar />, path: "/reports" },
-    { title: "Settings", icon: <FaCog />, path: "/settings" },
-  ];
+// Render the left admin navigation panel.
+function Sidebar() {
+  const location = useLocation();
+  const isCategorySectionActive =
+    location.pathname.startsWith("/categories") || location.pathname.startsWith("/subcategories");
+
+  const linkClassName = ({ isActive }) =>
+    `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+      isActive ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/20" : "text-slate-300 hover:bg-slate-800 hover:text-white"
+    }`;
+
+  const categoryLinkClassName = ({ isActive }) =>
+    `rounded-lg px-3 py-2 text-sm font-semibold transition ${
+      isActive ? "bg-slate-800 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"
+    }`;
 
   return (
-    <div className="w-64 h-screen sticky top-0 bg-slate-900 text-white flex flex-col p-5">
-      {/* Logo */}
-      <div className="flex items-center gap-2 mb-8">
+    <aside className="sticky top-0 flex h-screen w-full flex-col border-r border-slate-800 bg-slate-950 px-4 py-5 text-white md:w-72 md:px-5">
+      <div className="mb-8 flex items-center gap-3">
         <IoStatsChart className="text-3xl text-cyan-400" />
-        <h1 className="text-xl font-bold tracking-wide text-cyan-400">
-          tnpLab <span className="text-white">Pvt LTD</span>
-        </h1>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Admin Panel</p>
+          <h1 className="text-lg font-black text-white">TnpLab Pvt Ltd</h1>
+        </div>
       </div>
 
-      {/* Menu */}
-      <nav className="flex flex-col gap-2 text-sm flex-1">
-        {menuItems.map((item, index) => (
-          <div key={index}>
-            {item.subItems ? (
-              <>
-                {/* Parent */}
-                <div
-                  onClick={() => setOpenMenu(openMenu === index ? null : index)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer hover:bg-slate-800 text-gray-300 hover:text-white transition-all"
-                >
-                  <span className="text-lg text-cyan-400">{item.icon}</span>
-                  <span className="font-medium flex-1">{item.title}</span>
-                  <span>{openMenu === index ? "▲" : "▼"}</span>
-                </div>
+      <nav className="flex flex-1 flex-col gap-2 text-sm">
+        {mainLinks.map((item) => {
+          const Icon = item.icon;
 
-                {/* Submenu */}
-                {openMenu === index && (
-                  <div className="ml-8 flex flex-col gap-1 mt-1">
-                    {item.subItems.map((sub, subIndex) => (
-                      <NavLink
-                        key={subIndex}
-                        to={sub.path}
-                        className={({ isActive }) =>
-                          `px-3 py-2 rounded-md text-sm ${
-                            isActive
-                              ? "bg-cyan-600 text-white"
-                              : "text-gray-400 hover:text-white hover:bg-slate-800"
-                          }`
-                        }
-                      >
-                        {sub.title}
-                      </NavLink>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <NavLink
-                to={item.path}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                    isActive
-                      ? "bg-cyan-600 text-white"
-                      : "hover:bg-slate-800 text-gray-300 hover:text-white"
-                  }`
-                }
-              >
-                <span className="text-lg text-cyan-400">{item.icon}</span>
-                <span className="font-medium">{item.title}</span>
-              </NavLink>
-            )}
+          return (
+            <NavLink key={item.path} to={item.path} end={item.path === "/"} className={linkClassName}>
+              <Icon className="text-base text-cyan-400" />
+              <span>{item.label}</span>
+            </NavLink>
+          );
+        })}
+
+        <div className={`mt-2 rounded-2xl border border-slate-800 p-2 ${isCategorySectionActive ? "bg-slate-900/70" : "bg-slate-900/30"}`}>
+          <div className="flex items-center gap-3 px-3 py-2 text-sm font-semibold text-slate-200">
+            <FaTags className="text-cyan-400" />
+            <span>Catalog</span>
           </div>
-        ))}
-
-        {/* Spacer */}
-        <div className="flex-1"></div>
-
-        {/* Logout */}
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-900/40 transition font-medium w-full text-left cursor-pointer"
-        >
-          <FaSignOutAlt className="text-lg" />
-          Log out
-        </button>
+          <div className="mt-1 flex flex-col gap-1 pl-2">
+            {categoryLinks.map((item) => (
+              <NavLink key={item.path} to={item.path} className={categoryLinkClassName}>
+                {item.label}
+              </NavLink>
+            ))}
+          </div>
+        </div>
       </nav>
-    </div>
+
+      <p className="mt-6 text-xs leading-5 text-slate-500">
+        Simple navigation for admin users to manage catalog, users, and reporting.
+      </p>
+    </aside>
   );
 }
 
-export default Sidebar1;
+export default Sidebar;

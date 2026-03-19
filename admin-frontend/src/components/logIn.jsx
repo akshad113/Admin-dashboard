@@ -1,20 +1,46 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useFormik } from "formik";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+
 import { apiRequest } from "../lib/api";
 import { loginValidationSchema } from "../validation/schemas";
 
+// Render the admin login form.
 const LogIn = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (location.state?.message) {
       toast.success(location.state.message);
     }
-  }, [location.state]);
+  }, [location.state?.message]);
+
+  // Submit the admin login form and store the session token.
+  const handleSubmit = async (values, { setSubmitting }) => {
+    try {
+      const data = await apiRequest("/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: values.email.trim(),
+          password: values.password,
+        }),
+      });
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user || {}));
+      toast.success("Login successful");
+      navigate("/");
+    } catch (err) {
+      toast.error(err.message || "Login failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const formik = useFormik({
     initialValues: {
@@ -22,49 +48,33 @@ const LogIn = () => {
       password: "",
     },
     validationSchema: loginValidationSchema,
-    onSubmit: async (values) => {
-      setLoading(true);
-
-      try {
-        const data = await apiRequest("/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: values.email.trim(),
-            password: values.password,
-          }),
-        });
-
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user || {}));
-        toast.success("Login successful");
-        navigate("/");
-      } catch (err) {
-        toast.error(err.message || "Login failed");
-      } finally {
-        setLoading(false);
-      }
-    },
+    onSubmit: handleSubmit,
   });
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-200">
+    <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-10">
       <form
         onSubmit={formik.handleSubmit}
         noValidate
-        className="bg-white p-8 rounded shadow-md w-96"
+        className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60"
       >
-        <h2 className="text-2xl font-bold mb-6 text-center">Admin Login</h2>
+        <div className="mb-8 space-y-2 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-600">Admin Access</p>
+          <h2 className="text-3xl font-black text-slate-900">Sign In</h2>
+          <p className="text-sm text-slate-500">Use your admin email and password to manage the dashboard.</p>
+        </div>
 
+        <label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="email">
+          Email
+        </label>
         <input
+          id="email"
           name="email"
-          type="text"
+          type="email"
           inputMode="email"
           placeholder="Email"
-          className={`w-full p-2 border rounded ${
-            formik.touched.email && formik.errors.email ? "border-red-400" : "mb-4"
+          className={`mb-2 w-full rounded-xl border px-4 py-3 text-sm outline-none ring-cyan-300 focus:ring-2 ${
+            formik.touched.email && formik.errors.email ? "border-rose-400" : "border-slate-200"
           }`}
           value={formik.values.email}
           onChange={formik.handleChange}
@@ -72,17 +82,21 @@ const LogIn = () => {
           autoComplete="email"
         />
         {formik.touched.email && formik.errors.email ? (
-          <p className="mb-4 text-xs text-red-600">{formik.errors.email}</p>
+          <p className="mb-4 text-xs font-semibold text-rose-600">{formik.errors.email}</p>
         ) : (
           <div className="mb-4" />
         )}
 
+        <label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="password">
+          Password
+        </label>
         <input
+          id="password"
           name="password"
           type="password"
           placeholder="Password"
-          className={`w-full p-2 border rounded ${
-            formik.touched.password && formik.errors.password ? "border-red-400" : "mb-4"
+          className={`mb-2 w-full rounded-xl border px-4 py-3 text-sm outline-none ring-cyan-300 focus:ring-2 ${
+            formik.touched.password && formik.errors.password ? "border-rose-400" : "border-slate-200"
           }`}
           value={formik.values.password}
           onChange={formik.handleChange}
@@ -90,23 +104,20 @@ const LogIn = () => {
           autoComplete="current-password"
         />
         {formik.touched.password && formik.errors.password ? (
-          <p className="mb-4 text-xs text-red-600">{formik.errors.password}</p>
+          <p className="mb-4 text-xs font-semibold text-rose-600">{formik.errors.password}</p>
         ) : (
           <div className="mb-4" />
         )}
 
         <button
-          className="w-full bg-blue-600 text-white p-2 rounded disabled:opacity-60"
-          disabled={loading || formik.isSubmitting}
+          type="submit"
+          className="w-full rounded-full bg-cyan-600 px-4 py-3 font-semibold text-white transition hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={formik.isSubmitting}
         >
-          {loading ? "Signing in..." : "Login"}
+          {formik.isSubmitting ? "Signing in..." : "Login"}
         </button>
-
-        <p className="text-sm text-center mt-4">
-          Need a test account?{" "}
-        </p>
       </form>
-    </div>
+    </main>
   );
 };
 

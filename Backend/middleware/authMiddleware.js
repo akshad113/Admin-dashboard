@@ -1,39 +1,53 @@
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 
+// Extract the bearer token from the Authorization header.
+const getBearerToken = (authorizationHeader) => {
+  if (!authorizationHeader || !authorizationHeader.startsWith("Bearer ")) {
+    return null;
+  }
+
+  return authorizationHeader.split(" ")[1] || null;
+};
+
+// Convert any role values into a lowercase string array.
+const normalizeRoles = (roles) => roles.map((role) => String(role).toLowerCase());
+
+// Check whether the user has at least one role from the allowed list.
+const hasAllowedRole = (userRoles, allowedRoles) => {
+  const normalizedUserRoles = normalizeRoles(userRoles);
+  const normalizedAllowedRoles = normalizeRoles(allowedRoles);
+
+  return normalizedAllowedRoles.some((role) => normalizedUserRoles.includes(role));
+};
+
+// Verify the JWT and attach the decoded user payload to req.user.
 const verifyToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  const token = getBearerToken(req.headers.authorization);
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  if (!token) {
     return res.status(401).json({
-      message: "No token provided"
+      message: "No token provided",
     });
   }
 
-  const token = authHeader.split(" ")[1];
-
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // attach user information 
-    next();
+    req.user = decoded;
+    return next();
   } catch (error) {
     return res.status(401).json({
-      message: "Invalid or expired token"
+      message: "Invalid or expired token",
     });
   }
 };
 
+// Allow the request only when the user has one of the listed roles.
 const authorizeRoles = (...allowedRoles) => (req, res, next) => {
   const userRoles = Array.isArray(req.user?.roles) ? req.user.roles : [];
-  const normalizedUserRoles = userRoles.map((role) => String(role).toLowerCase());
-  const normalizedAllowedRoles = allowedRoles.map((role) => String(role).toLowerCase());
 
-  const hasPermission = normalizedAllowedRoles.some((role) =>
-    normalizedUserRoles.includes(role)
-  );
-
-  if (!hasPermission) {
+  if (!hasAllowedRole(userRoles, allowedRoles)) {
     return res.status(403).json({
-      message: "Forbidden"
+      message: "Forbidden",
     });
   }
 
