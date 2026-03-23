@@ -4,6 +4,7 @@ import Login from "../pages/Login";
 import Orders from "../pages/Orders";
 import Products from "../pages/Products";
 import Profile from "../pages/Profile";
+import Signup from "../pages/Signup";
 import DashboardLayout from "../layouts/DashboardLayout";
 import ProtectedRoute from "./ProtectedRoute";
 import { hasRetailerAccess } from "../lib/auth";
@@ -17,6 +18,10 @@ function Router() {
         <Route
           path="/login"
           element={canAccessRetailerRoutes ? <Navigate to="/" replace /> : <Login />}
+        />
+        <Route
+          path="/signup"
+          element={canAccessRetailerRoutes ? <Navigate to="/" replace /> : <Signup />}
         />
 
         <Route element={<ProtectedRoute />}>

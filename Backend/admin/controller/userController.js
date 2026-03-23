@@ -26,6 +26,10 @@ const parsePositiveId = (value) => {
 // Turn role rows into a unique list of role names.
 const extractRoleNames = (rows) => [...new Set(rows.map((row) => row.role_name).filter(Boolean))];
 
+// Check whether a user already has the retailer role.
+const hasRetailerRole = (roles) =>
+  roles.some((role) => String(role).toLowerCase() === 'retailer');
+
 // Map joined user rows into a single user object with roles.
 const mapUserWithRoles = (rows) => {
   if (!rows || rows.length === 0) {
@@ -144,6 +148,24 @@ const runInTransaction = async (task) => {
   } finally {
     transaction.release();
   }
+};
+
+// Get the retailer role id or create it when it does not exist yet.
+const getOrCreateRetailerRoleId = async (transaction) => {
+  const [roleRows] = await transaction.query(
+    'SELECT role_id FROM roles WHERE LOWER(role_name) = LOWER(?) LIMIT 1',
+    ['Retailer']
+  );
+
+  if (roleRows.length > 0) {
+    return roleRows[0].role_id;
+  }
+
+  const [roleInsert] = await transaction.query('INSERT INTO roles (role_name) VALUES (?)', [
+    'Retailer',
+  ]);
+
+  return roleInsert.insertId;
 };
 
 // Create a new admin user and optionally attach a role assignment.
@@ -332,6 +354,52 @@ const toggleUserStatus = async (req, res) => {
   }
 };
 
+// Approve a pending retailer request by enabling the retailer role and activating the account.
+const approveRetailerRequest = async (req, res) => {
+  try {
+    const userId = parsePositiveId(req.params.id);
+
+    if (!userId) {
+      return res.status(400).json({ error: 'Invalid user id' });
+    }
+
+    const user = await fetchUserWithRolesById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    await runInTransaction(async (transaction) => {
+      const retailerRoleId = await getOrCreateRetailerRoleId(transaction);
+
+      if (!hasRetailerRole(user.roles)) {
+        const [roleAssignRows] = await transaction.query(
+          'SELECT 1 FROM role_assign WHERE user_id = ? AND role_id = ? LIMIT 1',
+          [userId, retailerRoleId]
+        );
+
+        if (roleAssignRows.length === 0) {
+          await transaction.query('INSERT INTO role_assign (user_id, role_id) VALUES (?, ?)', [
+            userId,
+            retailerRoleId,
+          ]);
+        }
+      }
+
+      await transaction.query('UPDATE users SET status = ? WHERE user_id = ?', ['active', userId]);
+    });
+
+    return res.status(200).json({
+      message: 'Retailer request approved',
+      userId,
+      status: 'active',
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   createUser,
   loginUser,
@@ -339,6 +407,7 @@ module.exports = {
   listRoles,
   updateUser,
   toggleUserStatus,
+  approveRetailerRequest,
   fetchUserWithRolesByEmail,
   fetchUserWithRolesById,
   signToken,

@@ -11,6 +11,7 @@ The codebase is organized to stay beginner-friendly while keeping the current fu
 - Joi request validation
 - JWT authentication
 - database transactions for register and checkout flows
+- retailer signup requests that wait for admin approval
 - existing folder structure
 
 ## Tech Stack
@@ -53,9 +54,11 @@ ecommerce/
 - User management
 - Category and subcategory management
 - Product listing view
+- Retailer request approval flow in the users table
 
 ### Retailer Frontend
 - Login flow
+- Signup request flow that submits a retailer approval request
 - Product creation
 - Product table and related dashboard screens
 
@@ -136,15 +139,20 @@ If you prefer to create the schema manually, make sure the following objects exi
 - `orders`
 - `order_items`
 
+The `users.status` column should allow `active`, `inactive`, and `pending` so retailer signup requests can stay pending until an admin approves them.
+
 ## API Endpoints
 
 ### Auth and Users
 - `POST /api/login`
 - `POST /api/createuser`
+- `POST /api/retailer/auth/signup`
+- `POST /api/retailer/auth/login`
 - `GET /api/users` - JWT required
 - `GET /api/roles` - JWT required
 - `PUT /api/users/:id` - JWT required
 - `PUT /api/users/:id/status` - JWT required
+- `PUT /api/users/:id/approve-retailer` - JWT required
 
 ### Categories
 - `GET /api/categories`

@@ -77,6 +77,16 @@ function Users() {
     }
   };
 
+  const handleApproveRetailer = async (userId) => {
+    try {
+      await apiRequest(`/users/${userId}/approve-retailer`, { method: "PUT" });
+      await loadUsers();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to approve retailer request");
+    }
+  };
+
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
@@ -91,7 +101,8 @@ function Users() {
   const showingFrom = users.length === 0 ? 0 : startIndex + 1;
   const showingTo = Math.min(startIndex + pageSize, users.length);
   const activeCount = users.filter((u) => String(u.status || "").toLowerCase() === "active").length;
-  const inactiveCount =users.filter((u) => String(u.status || "").toLowerCase() !== "active").length;
+  const pendingCount = users.filter((u) => String(u.status || "").toLowerCase() === "pending").length;
+  const inactiveCount = users.filter((u) => String(u.status || "").toLowerCase() === "inactive").length;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-6 shadow-lg">
@@ -123,10 +134,14 @@ function Users() {
         </button>
       </div>
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Users</p>
           <p className="mt-2 text-2xl font-bold text-slate-900">{users.length}</p>
+        </div>
+        <div className="rounded-xl border border-amber-100 bg-amber-50 p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Pending</p>
+          <p className="mt-2 text-2xl font-bold text-amber-700">{pendingCount}</p>
         </div>
         <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Active</p>
@@ -195,8 +210,9 @@ function Users() {
                       className="sr-only peer"
                       checked={String(u.status || "").toLowerCase() === "active"}
                       onChange={() => handleToggleStatus(u.user_id)}
+                      disabled={String(u.status || "").toLowerCase() === "pending"}
                     />
-                    <div className="relative w-11 h-6 bg-slate-300 rounded-full peer peer-checked:bg-emerald-500 transition">
+                    <div className="relative w-11 h-6 bg-slate-300 rounded-full peer peer-checked:bg-emerald-500 transition peer-disabled:cursor-not-allowed peer-disabled:opacity-50">
                       <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition peer-checked:translate-x-5"></div>
                     </div>
                     <span className="ml-2 text-xs font-semibold text-slate-700">
@@ -205,6 +221,14 @@ function Users() {
                   </label>
                 </td>
                 <td className="px-4 text-center">
+                  {String(u.status || "").toLowerCase() === "pending" ? (
+                    <button
+                      className="mr-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                      onClick={() => handleApproveRetailer(u.user_id)}
+                    >
+                      Approve
+                    </button>
+                  ) : null}
                   <button
                     className="mr-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
                     onClick={() => setEditingUser(u)}

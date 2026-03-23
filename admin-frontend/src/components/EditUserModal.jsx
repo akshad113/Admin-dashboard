@@ -144,6 +144,7 @@ function EditUserModal({ user, onClose, onSaved }) {
           >
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
+            <option value="pending">Pending</option>
           </select>
           {formik.touched.status && formik.errors.status ? (
             <p className="text-xs text-red-600">{formik.errors.status}</p>

@@ -1,25 +1,27 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import Button from "../components/ui/Button";
-import { hasRetailerAccess, setRetailerSession } from "../lib/auth";
 import { apiRequest } from "../lib/api";
+import { hasRetailerAccess } from "../lib/auth";
 
-// Render the retailer login page.
-function Login() {
+// Render the retailer signup request page.
+function Signup() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const routeMessage = location.state?.message;
-  const [formState, setFormState] = useState({ email: "", password: "" });
+  const [formState, setFormState] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (routeMessage) {
-      setError("");
+    if (hasRetailerAccess()) {
+      navigate("/", { replace: true });
     }
-  }, [routeMessage]);
+  }, [navigate]);
 
   // Update a single form field as the user types.
   const handleChange = (event) => {
@@ -27,40 +29,39 @@ function Login() {
     setFormState((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Submit the retailer login form and store the returned session.
+  // Submit the retailer request and return the user to login with a status message.
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
+
+    if (formState.password !== formState.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      const payload = await apiRequest("/retailer/auth/login", {
+      const payload = await apiRequest("/retailer/auth/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          name: formState.name.trim(),
           email: formState.email.trim(),
           password: formState.password,
         }),
       });
 
-      const roles = Array.isArray(payload?.user?.roles) ? payload.user.roles : [];
-      const hasRetailerRole = roles.some((role) => String(role).toLowerCase() === "retailer");
-
-      if (!hasRetailerRole) {
-        setError("This account does not have retailer access.");
-        return;
-      }
-
-      setRetailerSession({
-        token: payload.token,
-        user: payload.user,
+      navigate("/login", {
+        replace: true,
+        state: {
+          message: payload?.message || "Request submitted. Wait for admin approval.",
+        },
       });
-
-      navigate(location.state?.from || "/", { replace: true });
     } catch (requestError) {
-      setError(requestError.message || "Login failed");
+      setError(requestError.message || "Signup request failed");
     } finally {
       setSubmitting(false);
     }
@@ -77,16 +78,26 @@ function Login() {
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-blue-600">
             Retailer Access
           </p>
-          <h1 className="mt-2 text-3xl font-black text-slate-900">Sign In</h1>
+          <h1 className="mt-2 text-3xl font-black text-slate-900">Request Signup</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Manage products, track orders, and monitor your seller performance.
+            Create your retailer request and wait for admin approval.
           </p>
-          {routeMessage ? (
-            <p className="mt-2 text-sm font-medium text-emerald-600">{routeMessage}</p>
-          ) : null}
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-slate-700">Name</label>
+            <input
+              name="name"
+              type="text"
+              required
+              placeholder="Store owner name"
+              value={formState.name}
+              onChange={handleChange}
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none ring-blue-300 placeholder:text-slate-400 focus:ring-2"
+            />
+          </div>
+
           <div>
             <label className="mb-1 block text-sm font-semibold text-slate-700">Email</label>
             <input
@@ -105,9 +116,26 @@ function Login() {
             <input
               name="password"
               type="password"
+              minLength={6}
               required
-              placeholder="Enter your password"
+              placeholder="Create a password"
               value={formState.password}
+              onChange={handleChange}
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none ring-blue-300 placeholder:text-slate-400 focus:ring-2"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-slate-700">
+              Confirm Password
+            </label>
+            <input
+              name="confirmPassword"
+              type="password"
+              minLength={6}
+              required
+              placeholder="Repeat your password"
+              value={formState.confirmPassword}
               onChange={handleChange}
               className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none ring-blue-300 placeholder:text-slate-400 focus:ring-2"
             />
@@ -116,14 +144,14 @@ function Login() {
           {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
 
           <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting ? "Signing In..." : "Login"}
+            {submitting ? "Submitting..." : "Request Approval"}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-slate-500">
-          New retailer?{" "}
-          <Link to="/signup" className="font-semibold text-blue-700 hover:text-blue-800">
-            Request access
+          Already have access?{" "}
+          <Link to="/login" className="font-semibold text-blue-700 hover:text-blue-800">
+            Back to login
           </Link>
         </p>
       </div>
@@ -131,4 +159,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default Signup;

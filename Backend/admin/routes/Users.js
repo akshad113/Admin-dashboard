@@ -8,6 +8,7 @@ const {
   listRoles,
   updateUser,
   toggleUserStatus,
+  approveRetailerRequest,
 } = require('../controller/userController');
 const verifyToken = require('../../middleware/authMiddleware');
 const { validateBody, validateParams } = require('../../middleware/validate');
@@ -40,5 +41,6 @@ router.get('/roles', verifyToken, listRoles);
 
 router.put('/users/:id/status', verifyToken, validateParams(idParamSchema), toggleUserStatus);
 router.put('/users/:id', verifyToken, validateParams(idParamSchema), validateBody(updateUserSchema), updateUser);
+router.put('/users/:id/approve-retailer', verifyToken, validateParams(idParamSchema), approveRetailerRequest);
 
 module.exports = router;

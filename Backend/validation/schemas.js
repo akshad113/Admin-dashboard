@@ -3,6 +3,7 @@ const Joi = require("joi");
 const positiveId = Joi.number().integer().positive();
 const emailSchema = Joi.string().trim().lowercase().email();
 const activeInactiveSchema = Joi.string().trim().lowercase().valid("active", "inactive");
+const userStatusSchema = Joi.string().trim().lowercase().valid("active", "inactive", "pending");
 
 const idParamSchema = Joi.object({
   id: positiveId.required().messages({
@@ -78,8 +79,8 @@ const createUserSchema = Joi.object({
   password: Joi.string().min(6).empty("").default("123456").messages({
     "string.min": "Password must be at least 6 characters",
   }),
-  status: activeInactiveSchema.allow(null).empty("").default(null).messages({
-    "any.only": "Status must be active or inactive",
+  status: userStatusSchema.allow(null).empty("").default(null).messages({
+    "any.only": "Status must be active, inactive, or pending",
   }),
   role_id: positiveId.allow(null).empty("").default(null).messages({
     "number.base": "Invalid role id",
@@ -120,6 +121,8 @@ const customerSignupSchema = Joi.object({
   }),
 });
 
+const retailerSignupSchema = customerSignupSchema;
+
 const customerLoginSchema = loginSchema;
 
 const updateUserSchema = Joi.object({
@@ -138,8 +141,8 @@ const updateUserSchema = Joi.object({
     "number.integer": "Invalid role id",
     "number.positive": "Invalid role id",
   }),
-  status: activeInactiveSchema.required().messages({
-    "any.only": "Status must be active or inactive",
+  status: userStatusSchema.required().messages({
+    "any.only": "Status must be active, inactive, or pending",
     "any.required": "Status is required",
   }),
 });
@@ -174,6 +177,7 @@ module.exports = {
   createUserSchema,
   loginSchema,
   customerSignupSchema,
+  retailerSignupSchema,
   customerLoginSchema,
   updateUserSchema,
   categorySchema,

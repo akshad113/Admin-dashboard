@@ -38,6 +38,6 @@ export const updateUserValidationSchema = Yup.object({
   email: emailSchema,
   roleId: roleIdSchema,
   status: Yup.string()
-    .oneOf(["active", "inactive"], "Status must be active or inactive")
+    .oneOf(["active", "inactive", "pending"], "Status must be active, inactive, or pending")
     .required("Status is required"),
 });
