@@ -3,6 +3,7 @@ import { apiRequest } from "../lib/api";
 
 function Orders() {
   const [orders, setOrders] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -24,6 +25,30 @@ function Orders() {
   useEffect(() => {
     loadOrders();
   }, []);
+
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  const visibleOrders = orders.filter((order) => {
+    if (!normalizedSearchTerm) return true;
+
+    const itemSummary = (order.items || [])
+      .map((item) => `${item.product_name} ${item.quantity}`)
+      .join(" ");
+
+    const searchableText = [
+      order.order_id,
+      order.customer_name,
+      order.customer_email,
+      order.status,
+      order.total_amount,
+      order.created_at,
+      itemSummary,
+    ]
+      .filter((value) => value !== null && value !== undefined)
+      .join(" ")
+      .toLowerCase();
+
+    return searchableText.includes(normalizedSearchTerm);
+  });
 
   const formatRupees = (value) => {
     const parsed = Number(value);
@@ -57,6 +82,17 @@ function Orders() {
         </div>
       </div>
 
+      <div className="mb-5">
+        <label className="mb-1 block text-sm font-medium text-slate-700">Search orders</label>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by order id, customer, status, or item..."
+          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition focus:border-slate-300 focus:ring-2 focus:ring-slate-200"
+        />
+      </div>
+
       {error ? <p className="mb-4 text-sm text-red-600">{error}</p> : null}
 
       <div className="overflow-x-auto">
@@ -85,8 +121,14 @@ function Orders() {
                   No orders found.
                 </td>
               </tr>
+            ) : visibleOrders.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-4 text-sm text-slate-500">
+                  No orders match your search.
+                </td>
+              </tr>
             ) : (
-              orders.map((order) => (
+              visibleOrders.map((order) => (
                 <tr
                   key={order.order_id}
                   className="border-b last:border-none hover:bg-gray-50 transition"

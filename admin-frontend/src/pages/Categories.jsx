@@ -4,6 +4,7 @@ import { apiRequest } from "../lib/api";
 function Categories() {
   const [newCat, setNewCat] = useState("");
   const [categories, setCategories] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [editingName, setEditingName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -33,7 +34,7 @@ function Categories() {
 
   useEffect(() => {
     setPage(1);
-  }, [categories.length]);
+  }, [categories.length, searchTerm]);
 
   useEffect(() => {
     if (!responseMsg) return undefined;
@@ -133,19 +134,44 @@ function Categories() {
     }
   };
 
-  const totalPages = Math.max(1, Math.ceil(categories.length / pageSize));
-  const startIndex = (page - 1) * pageSize;
-  const visibleCategories = categories.slice(startIndex, startIndex + pageSize);
-  const showingFrom = categories.length === 0 ? 0 : startIndex + 1;
-  const showingTo = Math.min(startIndex + pageSize, categories.length);
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  const filteredCategories = categories.filter((category) => {
+    if (!normalizedSearchTerm) return true;
 
+    const searchableText = [
+      category.category_id,
+      category.name,
+      category.created_at,
+    ]
+      .filter((value) => value !== null && value !== undefined)
+      .join(" ")
+      .toLowerCase();
+
+    return searchableText.includes(normalizedSearchTerm);
+  });
+  const totalFilteredPages = Math.max(1, Math.ceil(filteredCategories.length / pageSize));
+  const filteredStartIndex = (page - 1) * pageSize;
+  const visibleCategories = filteredCategories.slice(filteredStartIndex, filteredStartIndex + pageSize);
+  const filteredShowingFrom = filteredCategories.length === 0 ? 0 : filteredStartIndex + 1;
+  const filteredShowingTo = Math.min(filteredStartIndex + pageSize, filteredCategories.length);
   return (
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-6 shadow-lg">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Categories</h2>
-          <p className="mt-1 text-sm text-slate-500">Manage product categories from one table view</p>
+          <p className="mt-1 text-sm text-slate-500"></p>
         </div>
+      </div>
+
+      <div className="mb-5">
+        <label className="mb-1 block text-sm font-medium text-slate-700">Search categories</label>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by category name or ID..."
+          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition focus:border-slate-300 focus:ring-2 focus:ring-slate-200"
+        />
       </div>
 
       <form onSubmit={handleAdd} className="mb-5 flex flex-col gap-3 sm:flex-row">
@@ -199,6 +225,12 @@ function Categories() {
               <tr>
                 <td colSpan={4} className="py-6 text-center text-slate-500">
                   No categories found
+                </td>
+              </tr>
+            ) : filteredCategories.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="py-6 text-center text-slate-500">
+                  No categories match your search
                 </td>
               </tr>
             ) : (
@@ -268,7 +300,7 @@ function Categories() {
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
         <span className="rounded-lg bg-slate-100 px-3 py-1.5 font-medium">
-          Showing {showingFrom}-{showingTo} of {categories.length}
+          Showing {filteredShowingFrom}-{filteredShowingTo} of {filteredCategories.length}
         </span>
         <div className="flex items-center gap-2">
           <button
@@ -280,12 +312,12 @@ function Categories() {
             Prev
           </button>
           <span className="min-w-[110px] text-center font-semibold">
-            Page {page} of {totalPages}
+            Page {page} of {totalFilteredPages}
           </span>
           <button
             type="button"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
+            onClick={() => setPage((p) => Math.min(totalFilteredPages, p + 1))}
+            disabled={page === totalFilteredPages}
             className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Next

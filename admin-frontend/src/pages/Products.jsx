@@ -16,6 +16,7 @@ const formatPrice = (value) => {
 
 function Products() {
   const [products, setProducts] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -38,6 +39,26 @@ function Products() {
     loadProducts();
   }, []);
 
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  const visibleProducts = products.filter((product) => {
+    if (!normalizedSearchTerm) return true;
+
+    const searchableText = [
+      product.product_id,
+      product.name,
+      product.category_name,
+      product.subcategory_name,
+      product.status,
+      product.stock_quantity,
+      product.price,
+    ]
+      .filter((value) => value !== null && value !== undefined)
+      .join(" ")
+      .toLowerCase();
+
+    return searchableText.includes(normalizedSearchTerm);
+  });
+
   return (
     <div className="bg-white rounded-xl shadow p-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -52,6 +73,17 @@ function Products() {
         </button>
       </div>
 
+      <div className="mb-4">
+        <label className="mb-1 block text-sm font-medium text-slate-700">Search products</label>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by name, category, status, price..."
+          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition focus:border-slate-300 focus:ring-2 focus:ring-slate-200"
+        />
+      </div>
+
       {error ? (
         <p className="mb-3 text-sm text-red-600">{error}</p>
       ) : null}
@@ -64,7 +96,11 @@ function Products() {
         <p className="text-sm text-slate-500">No products found.</p>
       ) : null}
 
-      {!loading && products.length > 0 ? (
+      {!loading && products.length > 0 && visibleProducts.length === 0 ? (
+        <p className="text-sm text-slate-500">No products match your search.</p>
+      ) : null}
+
+      {!loading && visibleProducts.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-sm">
             <thead className="text-gray-500 border-b bg-slate-50">
@@ -81,7 +117,7 @@ function Products() {
               </tr>
             </thead>
             <tbody>
-              {products.map((product) => (
+              {visibleProducts.map((product) => (
                 <tr key={product.product_id} className="border-b hover:bg-gray-50">
                   <td className="py-3 px-2">{product.product_id}</td>
                   <td className="py-3 px-2">{product.name}</td>

@@ -8,6 +8,7 @@ function Users() {
   const [editingUser, setEditingUser] = useState(null);
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -93,13 +94,31 @@ function Users() {
 
   useEffect(() => {
     setPage(1);
-  }, [users.length]);
+  }, [users.length, searchTerm]);
 
-  const totalPages = Math.max(1, Math.ceil(users.length / pageSize));
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  const filteredUsers = users.filter((user) => {
+    if (!normalizedSearchTerm) return true;
+
+    const searchableText = [
+      user.user_id,
+      user.name,
+      user.email,
+      user.role_name,
+      user.status,
+    ]
+      .filter((value) => value !== null && value !== undefined)
+      .join(" ")
+      .toLowerCase();
+
+    return searchableText.includes(normalizedSearchTerm);
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
   const startIndex = (page - 1) * pageSize;
-  const visibleUsers = users.slice(startIndex, startIndex + pageSize);
-  const showingFrom = users.length === 0 ? 0 : startIndex + 1;
-  const showingTo = Math.min(startIndex + pageSize, users.length);
+  const visibleUsers = filteredUsers.slice(startIndex, startIndex + pageSize);
+  const showingFrom = filteredUsers.length === 0 ? 0 : startIndex + 1;
+  const showingTo = Math.min(startIndex + pageSize, filteredUsers.length);
   const activeCount = users.filter((u) => String(u.status || "").toLowerCase() === "active").length;
   const pendingCount = users.filter((u) => String(u.status || "").toLowerCase() === "pending").length;
   const inactiveCount = users.filter((u) => String(u.status || "").toLowerCase() === "inactive").length;
@@ -132,6 +151,17 @@ function Users() {
         >
           + Add User
         </button>
+      </div>
+
+      <div className="mb-5">
+        <label className="mb-1 block text-sm font-medium text-slate-700">Search users</label>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by name, email, role, status, or ID..."
+          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition focus:border-slate-300 focus:ring-2 focus:ring-slate-200"
+        />
       </div>
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -177,6 +207,12 @@ function Users() {
             <tr>
               <td colSpan={5} className="text-center py-6 text-slate-500">
                 No users found
+              </td>
+            </tr>
+          ) : filteredUsers.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="text-center py-6 text-slate-500">
+                No users match your search
               </td>
             </tr>
           ) : (
@@ -245,7 +281,7 @@ function Users() {
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
         <span className="rounded-lg bg-slate-100 px-3 py-1.5 font-medium">
-          Showing {showingFrom}-{showingTo} of {users.length}
+          Showing {showingFrom}-{showingTo} of {filteredUsers.length}
         </span>
         <div className="flex items-center gap-2">
           <button
