@@ -252,8 +252,104 @@ const getCustomerMe = async (req, res) => {
   }
 };
 
+const { getFirebaseAdmin } = require("../../config/firebaseAdmin");
+
+const googleLoginCustomer = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({ message: 'idToken required' });
+    }
+
+    const admin = getFirebaseAdmin();
+
+    if (!admin) {
+      return res.status(500).json({
+        message: 'Firebase Admin is not configured on the server',
+      });
+    }
+
+    // 1. Verify Firebase token
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+
+    const name = normalizeText(decodedToken.name || 'User');
+    const email = normalizeEmail(decodedToken.email);
+
+    if (!email) {
+      return res
+        .status(400)
+        .json({ message: 'Email not available from Google account' });
+    }
+
+    // 2. Check if user exists
+    let user = await fetchUserWithRolesByEmail(email);
+
+    // 3. If NOT exist → create user
+    if (!user) {
+      const randomPassword = Math.random().toString(36).slice(-10);
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      const userId = await runInTransaction(async (transaction) => {
+        const [userInsert] = await transaction.query(
+          "INSERT INTO users (name, email, password, status) VALUES (?, ?, ?, 'active')",
+          [name, email, hashedPassword]
+        );
+
+        const roleId = await getOrCreateCustomerRoleId(transaction);
+
+        await transaction.query(
+          'INSERT INTO role_assign (user_id, role_id) VALUES (?, ?)',
+          [userInsert.insertId, roleId]
+        );
+
+        return userInsert.insertId;
+      });
+
+      user = {
+        id: userId,
+        name,
+        email,
+        roles: ['User'],
+      };
+    } else {
+      // 4. Existing user checks
+      if (normalizeText(user.status).toLowerCase() !== 'active') {
+        return res.status(403).json({ message: 'Access denied. User inactive.' });
+      }
+
+      if (!hasCustomerRole(user)) {
+        return res
+          .status(403)
+          .json({ message: 'Customer access is not enabled for this account' });
+      }
+    }
+
+    // 5. Generate JWT (reuse your existing function)
+    const token = signToken(user);
+
+    // 6. Response (same shape as login)
+    return res.status(200).json({
+      message: 'Google login successful',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        roles: user.roles,
+      },
+    });
+  } catch (error) {
+    console.error('Google Login Error:', error);
+    return res.status(500).json({
+      message: 'Google authentication failed',
+    });
+  }
+};
+
 module.exports = {
   registerCustomer,
   loginCustomer,
   getCustomerMe,
+  googleLoginCustomer,
 };

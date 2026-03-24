@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import CustomerHeader from "../components/CustomerHeader";
 import HeroSection from "../components/HeroSection";
@@ -88,6 +88,17 @@ export default function HomePage() {
     [products, normalizedSearch, selectedCategory]
   );
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 8;
+
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    return filteredProducts.slice(start, end);
+  }, [filteredProducts, currentPage]);
+
   // Log the customer out and clear the shopping session.
   const handleLogout = () => {
     logoutCustomer();
@@ -110,7 +121,10 @@ export default function HomePage() {
               <input
                 type="search"
                 value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
+                onChange={(event) => {
+                  setSearchTerm(event.target.value);
+                  setCurrentPage(1);
+                }}
                 placeholder="Search for products, brands, or categories"
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none ring-amber-300 focus:ring-2"
               />
@@ -122,7 +136,10 @@ export default function HomePage() {
               </span>
               <select
                 value={selectedCategory}
-                onChange={(event) => setSelectedCategory(event.target.value)}
+                onChange={(event) => {
+                  setSelectedCategory(event.target.value);
+                  setCurrentPage(1);
+                }}
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none ring-amber-300 focus:ring-2"
               >
                 <option value="All">All</option>
@@ -202,10 +219,42 @@ export default function HomePage() {
               </button>
             </div>
           ) : filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {filteredProducts.slice(0, 8).map((product) => (
-                <ProductCard key={product.product_id} product={product} onAddToCart={() => addToCart(product, token)} />
-              ))}
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {paginatedProducts.map((product) => (
+                  <ProductCard
+                    key={product.product_id}
+                    product={product}
+                    onAddToCart={() => addToCart(product, token)}
+                  />
+                ))}
+              </div>
+
+              {totalPages > 1 ? (
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <button
+                    type="button"
+                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  >
+                    Previous
+                  </button>
+
+                  <p className="text-xs font-bold uppercase tracking-[0.25em] text-slate-500">
+                    Page {currentPage} of {totalPages}
+                  </p>
+
+                  <button
+                    type="button"
+                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                  >
+                    Next
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">

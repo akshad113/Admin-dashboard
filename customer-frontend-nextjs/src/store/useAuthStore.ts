@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { signInWithPopup, signOut } from "firebase/auth";
 
 import { requestApi } from "../lib/api";
+import { auth, googleProvider } from "../lib/firebase";
 import type { AuthResponse, AuthUser, MeResponse } from "../lib/types";
 
 type AuthStore = {
@@ -10,6 +12,7 @@ type AuthStore = {
   authLoading: boolean;
   signupCustomer: (input: { name: string; email: string; password: string }) => Promise<AuthResponse>;
   loginCustomer: (input: { email: string; password: string }) => Promise<AuthResponse>;
+  loginWithGoogle: () => Promise<AuthResponse>;
   hydrateCustomer: () => Promise<void>;
   logoutCustomer: () => void;
 };
@@ -62,6 +65,29 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
+      // Log a customer in with Google and exchange the Firebase token for an app session.
+      loginWithGoogle: async () => {
+        set({ authLoading: true });
+
+        try {
+          const credential = await signInWithPopup(auth, googleProvider);
+          const idToken = await credential.user.getIdToken();
+
+          const response = await requestApi<AuthResponse>("/api/customer/auth/google", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ idToken }),
+          });
+
+          set({ token: response.token, user: response.user });
+          return response;
+        } finally {
+          set({ authLoading: false });
+        }
+      },
+
       // Refresh the stored user profile from the backend when a token already exists.
       hydrateCustomer: async () => {
         const token = get().token;
@@ -85,6 +111,7 @@ export const useAuthStore = create<AuthStore>()(
 
       // Clear all auth state after logout.
       logoutCustomer: () => {
+        void signOut(auth);
         set({ token: null, user: null });
       },
     }),

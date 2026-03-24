@@ -47,6 +47,7 @@ ecommerce/
 - Subcategory CRUD
 - Retailer product creation and product listing
 - Customer auth and order-related APIs
+- Customer Google sign-in through Firebase Admin verification
 - Shared Joi validation schemas
 
 ### Admin Frontend
@@ -86,6 +87,9 @@ Create `Backend/.env`:
 JWT_SECRET=your_super_secret_key_123
 JWT_EXPIRES_IN=1d
 PORT=5000
+FIREBASE_PROJECT_ID=your_firebase_project_id
+FIREBASE_CLIENT_EMAIL=your_firebase_admin_client_email
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
 
 Update the MySQL connection settings in `Backend/db/userDB.js` if needed.
@@ -122,6 +126,19 @@ npm run dev
 - Uses Zustand for state management
 - Uses Tailwind CSS for styling
 - Reads and writes data through the backend API at `http://localhost:5000`
+- Supports email/password login and Google login through Firebase
+
+Create `customer-frontend-nextjs/.env.local`:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_web_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_firebase_app_id
+```
 
 ## Database Setup
 

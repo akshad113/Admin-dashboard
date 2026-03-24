@@ -12,6 +12,7 @@ export default function LoginPage() {
   const user = useAuthStore((state) => state.user);
   const authLoading = useAuthStore((state) => state.authLoading);
   const loginCustomer = useAuthStore((state) => state.loginCustomer);
+  const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle);
   const [formState, setFormState] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
 
@@ -40,6 +41,18 @@ export default function LoginPage() {
       router.push("/");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Login failed");
+    }
+  };
+
+  // Sign in with Google and send the user to the home page.
+  const handleGoogleLogin = async () => {
+    setError("");
+
+    try {
+      await loginWithGoogle();
+      router.push("/");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Google login failed");
     }
   };
 
@@ -95,6 +108,22 @@ export default function LoginPage() {
           className="w-full rounded-full bg-slate-950 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {authLoading ? "Signing in..." : "Login"}
+        </button>
+
+        <div className="relative py-2">
+          <div className="h-px w-full bg-slate-200" />
+          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-3 text-[10px] font-black uppercase tracking-[0.35em] text-slate-400">
+            or
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          disabled={authLoading}
+          className="w-full rounded-full border border-slate-200 bg-white py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {authLoading ? "Signing in..." : "Continue with Google"}
         </button>
 
         <p className="text-sm text-slate-500">

@@ -1,4 +1,5 @@
 const express = require("express");
+
 const router = express.Router();
 
 const verifyToken = require("../../middleware/authMiddleware");
@@ -7,11 +8,13 @@ const { customerSignupSchema, customerLoginSchema } = require("../../validation/
 const {
   registerCustomer,
   loginCustomer,
-  getCustomerMe
+  getCustomerMe,
+  googleLoginCustomer,
 } = require("../controller/authController");
 
 router.post("/signup", validateBody(customerSignupSchema), registerCustomer);
 router.post("/login", validateBody(customerLoginSchema), loginCustomer);
+router.post("/google", googleLoginCustomer);
 router.get("/me", verifyToken, getCustomerMe);
 
 module.exports = router;
