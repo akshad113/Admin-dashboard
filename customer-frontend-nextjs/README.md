@@ -6,7 +6,8 @@ Next.js storefront for the customer side of the ecommerce project.
 
 - Home page with hero, categories, featured products, search, and category filters
 - Product detail page at `/products/[productId]`
-- Cart page with quantity controls and checkout
+- Cart page with quantity controls and Stripe Checkout
+- Stripe confirmation page at `/checkout/success`
 - Orders page with order history and line items
 - Email/password login and registration
 - Google sign-in through Firebase
@@ -41,6 +42,8 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
 NEXT_PUBLIC_FIREBASE_APP_ID=your_firebase_app_id
+STRIPE_SECRET_KEY=your_stripe_secret_key
+CUSTOMER_FRONTEND_URL=http://localhost:3000
 ```
 
 ## Scripts
@@ -55,3 +58,4 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your_firebase_app_id
 - The storefront reads and writes data through the shared backend API.
 - Product detail pages fetch data directly from `GET /api/customer/products/:productId`.
 - Cart and order state are kept in Zustand and refreshed after checkout or logout.
+- Stripe Checkout starts from the cart page and finishes on `/checkout/success`.

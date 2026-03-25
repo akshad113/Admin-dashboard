@@ -98,6 +98,18 @@ export type ProductResponse = {
   message?: string;
 };
 
+export type StripeCheckoutSessionResponse = {
+  message?: string;
+  orderId: number;
+  sessionId: string;
+  url: string;
+};
+
+export type StripeCheckoutCompleteResponse = {
+  message?: string;
+  orderId: number;
+};
+
 export type CartResponse = {
   data?: CartItem[];
   summary?: CartSummary;

@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import CustomerHeader from "../../components/CustomerHeader";
+import { requestApi, withAuthHeaders } from "../../lib/api";
 import { formatRupees } from "../../lib/formatters";
+import type { StripeCheckoutSessionResponse } from "../../lib/types";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useShopStore } from "../../store/useShopStore";
 
@@ -17,13 +19,10 @@ export default function CartPage() {
   const cartSummary = useShopStore((state) => state.cartSummary);
   const cartLoading = useShopStore((state) => state.cartLoading);
   const cartError = useShopStore((state) => state.cartError);
-  const orderError = useShopStore((state) => state.orderError);
-  const orderSuccess = useShopStore((state) => state.orderSuccess);
   const loadHomeData = useShopStore((state) => state.loadHomeData);
   const setSearchTerm = useShopStore((state) => state.setSearchTerm);
   const setSelectedCategory = useShopStore((state) => state.setSelectedCategory);
   const loadCart = useShopStore((state) => state.loadCart);
-  const placeOrder = useShopStore((state) => state.placeOrder);
   const incrementCartItem = useShopStore((state) => state.incrementCartItem);
   const decrementCartItem = useShopStore((state) => state.decrementCartItem);
   const removeCartItem = useShopStore((state) => state.removeCartItem);
@@ -31,6 +30,14 @@ export default function CartPage() {
   const token = useAuthStore((state) => state.token);
   const customer = useAuthStore((state) => state.user);
   const logoutCustomer = useAuthStore((state) => state.logoutCustomer);
+  const [stripeLoading, setStripeLoading] = useState(false);
+  const [stripeError, setStripeError] = useState("");
+  const [stripeCancelled, setStripeCancelled] = useState(false);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    setStripeCancelled(searchParams.get("checkout") === "cancelled");
+  }, []);
 
   useEffect(() => {
     if (categories.length === 0) {
@@ -51,6 +58,34 @@ export default function CartPage() {
   const handleLogout = () => {
     logoutCustomer();
     resetShopSession();
+  };
+
+  const startStripeCheckout = async () => {
+    if (!token) {
+      setStripeError("Please login to continue to Stripe checkout.");
+      return;
+    }
+
+    setStripeLoading(true);
+    setStripeError("");
+
+    try {
+      const response = await requestApi<StripeCheckoutSessionResponse>(
+        "/api/customer/payments/stripe/checkout-session",
+        {
+          method: "POST",
+          headers: withAuthHeaders(token),
+        }
+      );
+
+      window.location.assign(response.url);
+    } catch (checkoutError) {
+      setStripeError(
+        checkoutError instanceof Error ? checkoutError.message : "Unable to start Stripe checkout"
+      );
+    } finally {
+      setStripeLoading(false);
+    }
   };
 
   return (
@@ -92,6 +127,12 @@ export default function CartPage() {
             </label>
           </div>
         </div>
+
+        {stripeCancelled ? (
+          <div className="rounded-[1.5rem] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
+            Stripe checkout was cancelled. Your cart is still saved.
+          </div>
+        ) : null}
 
         {!customer ? (
           <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
@@ -193,19 +234,21 @@ export default function CartPage() {
               </div>
               <button
                 type="button"
-                className="mt-5 w-full rounded-full bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
-                onClick={() => placeOrder(token)}
+                className="mt-5 w-full rounded-full bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+                onClick={startStripeCheckout}
+                disabled={stripeLoading}
               >
-                Place Order
+                {stripeLoading ? "Redirecting to Stripe..." : "Pay with Stripe"}
               </button>
-              <p className="mt-3 text-xs text-slate-500">Secure checkout powered by Shoplane Pay.</p>
+              <p className="mt-3 text-xs text-slate-500">
+                Secure checkout powered by Stripe Checkout.
+              </p>
             </aside>
           </div>
         )}
 
         {cartError ? <p className="text-sm font-semibold text-rose-600">{cartError}</p> : null}
-        {orderError ? <p className="text-sm font-semibold text-rose-600">{orderError}</p> : null}
-        {orderSuccess ? <p className="text-sm font-semibold text-emerald-600">{orderSuccess}</p> : null}
+        {stripeError ? <p className="text-sm font-semibold text-rose-600">{stripeError}</p> : null}
       </main>
     </div>
   );

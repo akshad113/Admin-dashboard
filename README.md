@@ -11,6 +11,7 @@ The codebase is organized to stay beginner-friendly while keeping the current fu
 - Joi request validation
 - JWT authentication
 - database transactions for register and checkout flows
+- Stripe Checkout for customer payments
 - retailer signup requests that wait for admin approval
 - existing folder structure
 
@@ -68,7 +69,8 @@ ecommerce/
 - Product detail page
 - Login page
 - Register page
-- Cart page
+- Cart page with Stripe Checkout
+- Stripe payment confirmation page
 - Orders page
 - Connected to the backend API at `http://localhost:5000`
 
@@ -91,6 +93,8 @@ PORT=5000
 FIREBASE_PROJECT_ID=your_firebase_project_id
 FIREBASE_CLIENT_EMAIL=your_firebase_admin_client_email
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+STRIPE_SECRET_KEY=your_stripe_secret_key
+CUSTOMER_FRONTEND_URL=http://localhost:3000
 ```
 
 Update the MySQL connection settings in `Backend/db/userDB.js` if needed.
@@ -193,6 +197,10 @@ The `users.status` column should allow `active`, `inactive`, and `pending` so re
 - `GET /api/customer/products`
 - `GET /api/customer/products/:productId`
 - `GET /api/customer/home`
+
+### Customer Payments
+- `POST /api/customer/payments/stripe/checkout-session`
+- `POST /api/customer/payments/stripe/complete`
 
 ## Frontend API Helpers
 

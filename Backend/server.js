@@ -15,6 +15,7 @@ const customerRouter = require('./customer/routes/Home');
 const customerAuthRouter = require('./customer/routes/Auth');
 const customerCartRouter = require('./customer/routes/Cart');
 const customerOrderRouter = require('./customer/routes/Orders');
+const customerPaymentRouter = require('./customer/routes/Payments');
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.use('/api/customer', customerRouter);
 app.use('/api/customer/auth', customerAuthRouter);
 app.use('/api/customer/cart', customerCartRouter);
 app.use('/api/customer/orders', customerOrderRouter);
+app.use('/api/customer/payments', customerPaymentRouter);
 
 /////////////////////////////////////////////////
 // TEST ROUTE
