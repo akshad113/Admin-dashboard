@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import type { Product } from "../lib/types";
 import { formatRupees, parseFeatures } from "../lib/formatters";
 
@@ -41,7 +43,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
           {product.description || "Carefully selected product for the customer catalog."}
         </p>
         <div className="flex items-center gap-2 text-xs font-semibold text-amber-500">
-          <span>Rating</span>
+          <span>Rating</span> 
           <span>{product.rating ?? "4.5"}/5</span>
           <span className="text-slate-400">({product.review_count ?? 0})</span>
         </div>
@@ -67,6 +69,13 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
         >
           Add to Cart
         </button>
+
+        <Link
+          href={`/products/${product.product_id}`}
+          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50"
+        >
+          View details
+        </Link>
       </div>
     </article>
   );

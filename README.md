@@ -64,7 +64,8 @@ ecommerce/
 - Product table and related dashboard screens
 
 ### Customer Frontend
-- Home page
+- Home page with search and category filters
+- Product detail page
 - Login page
 - Register page
 - Cart page
@@ -187,6 +188,11 @@ The `users.status` column should allow `active`, `inactive`, and `pending` so re
 - `GET /api/products` - JWT required, role: `Admin` or `Manager`
 - `GET /api/products/mine` - JWT required, role: `Admin` or `Manager`
 - `POST /api/products/create` - JWT required, role: `Admin` or `Manager`
+
+### Customer Products
+- `GET /api/customer/products`
+- `GET /api/customer/products/:productId`
+- `GET /api/customer/home`
 
 ## Frontend API Helpers
 

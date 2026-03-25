@@ -13,6 +13,14 @@ const parseLimit = (value, fallback = 12) => {
 
 const normalizeText = (value) => String(value || "").trim();
 
+const parsePositiveInt = (value, fallback = null) => {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return parsed;
+};
+
 const buildProductFilter = ({ search, category }) => {
   const where = ["p.status = 'active'"];
   const params = [];
@@ -105,6 +113,54 @@ const getCustomerProducts = async (req, res) => {
   }
 };
 
+const getCustomerProductById = async (req, res) => {
+  try {
+    const productId = parsePositiveInt(req.params.productId);
+
+    if (!productId) {
+      return res.status(400).json({ message: "Invalid product id" });
+    }
+
+    const rows = await query(
+      `SELECT
+        p.product_id,
+        p.name,
+        p.description,
+        p.brand,
+        p.price,
+        p.mrp,
+        p.rating,
+        p.review_count,
+        p.features,
+        p.stock_quantity,
+        p.image_url,
+        p.status,
+        p.created_at,
+        p.updated_at,
+        c.category_id,
+        c.name AS category_name,
+        s.subcategory_id,
+        s.name AS subcategory_name
+      FROM products p
+      LEFT JOIN categories c ON c.category_id = p.category_id
+      LEFT JOIN subcategories s ON s.subcategory_id = p.subcategory_id
+      WHERE p.product_id = ?
+        AND p.status = 'active'
+      LIMIT 1`,
+      [productId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    return res.status(200).json({ data: rows[0] });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error while fetching product" });
+  }
+};
+
 const getHomeData = async (req, res) => {
   try {
     const search = normalizeText(req.query.search);
@@ -170,6 +226,7 @@ const getHomeData = async (req, res) => {
 module.exports = {
   getCustomerCategories,
   getCustomerProducts,
+  getCustomerProductById,
   getHomeData
 };
 

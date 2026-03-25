@@ -92,6 +92,12 @@ export type HomeResponse = {
   products?: ApiListResponse<Product>;
 };
 
+export type ProductResponse = {
+  data?: Product;
+  product?: Product;
+  message?: string;
+};
+
 export type CartResponse = {
   data?: CartItem[];
   summary?: CartSummary;
